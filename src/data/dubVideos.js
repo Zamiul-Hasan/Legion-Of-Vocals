@@ -1,4 +1,4 @@
-import demonSlayerBanner from "../assets/images/temp/demon-slayer-banner.jpg";
+import demonSlayerBanner from "../assets/images/temp/Demon-Slayer-banner.jpg";
 import soloLevelingBanner from "../assets/images/temp/solo-leveling-banner.jpg";
 import blueLockBanner from "../assets/images/temp/blue-lock-banner.jpg";
 
