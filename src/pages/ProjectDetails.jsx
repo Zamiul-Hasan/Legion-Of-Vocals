@@ -3,10 +3,10 @@ import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
 import Footer from "../components/Footer/Footer";
 
-import projects from "../data/projects";
+import { useProjects } from "../hooks/useProjects";
+import { useDubVideos } from "../hooks/useDubVideos";
 import contributors from "../data/contributors";
 import gallery from "../data/gallery";
-import dubVideos from "../data/dubVideos";
 
 import ProjectBanner from "../components/Projects/ProjectBanner";
 import ProjectInfo from "../components/Projects/ProjectInfo";
@@ -18,6 +18,8 @@ import RelatedProjects from "../components/Projects/RelatedProjects";
 
 function ProjectDetails() {
   const { id } = useParams();
+  const { projects } = useProjects();
+  const { videos } = useDubVideos();
 
   const project = projects.find((p) => p.id === Number(id));
 
@@ -45,8 +47,8 @@ function ProjectDetails() {
     (image) => image.projectId === project.id
   );
 
-  const projectDubVideos = dubVideos.filter(
-    (video) => video.projectId === project.id
+  const projectDubVideos = videos.filter(
+    (video) => Number(video.projectId) === Number(project.id)
   );
 
   return (

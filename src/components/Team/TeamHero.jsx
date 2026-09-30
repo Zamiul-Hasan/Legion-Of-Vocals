@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import Container from "../UI/Container";
+import BackButton from "../UI/BackButton";
 
 function TeamHero() {
   return (
-    <section className="relative overflow-hidden bg-slate-950 pt-36 pb-24">
+    <section className="relative overflow-hidden bg-slate-950 pt-32 pb-24">
 
       {/* Background Glow */}
       <div className="absolute inset-0">
@@ -11,6 +12,10 @@ function TeamHero() {
       </div>
 
       <Container>
+        <div className="relative z-10 mb-6">
+          <BackButton label="Back" fallback="/" variant="subtle" />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}

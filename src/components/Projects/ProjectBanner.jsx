@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import BackButton from "../UI/BackButton";
 
 function ProjectBanner({ project }) {
   const statusColors = {
@@ -25,12 +25,7 @@ function ProjectBanner({ project }) {
 
       {/* Back Button */}
       <div className="absolute top-28 left-8 z-20">
-        <Link
-          to="/projects"
-          className="rounded-full border border-cyan-500/30 bg-slate-900/80 px-5 py-2 text-white backdrop-blur-md transition hover:bg-cyan-500"
-        >
-          ← Back to Projects
-        </Link>
+        <BackButton label="Back to Projects" fallback="/projects" variant="glass" />
       </div>
 
       {/* Content */}
@@ -89,9 +84,16 @@ function ProjectBanner({ project }) {
             </div>
 
             {/* Action Button */}
-            <div className="mt-10">
-              <button className="rounded-xl bg-cyan-500 px-8 py-3 font-semibold text-white transition hover:bg-cyan-400">
-                🎬 Watch Dub Videos
+            <div className="mt-10 flex flex-wrap gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("dub-videos-section");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="rounded-xl bg-cyan-500 px-8 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 cursor-pointer"
+              >
+                🎬 Watch & Share Dub Videos
               </button>
             </div>
           </motion.div>

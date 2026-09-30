@@ -1,0 +1,56 @@
+import {
+  LayoutDashboard,
+  User,
+  FolderKanban,
+  Video,
+  Upload,
+  Bell,
+  Trophy,
+  Medal,
+  Settings,
+  Users,
+  ClipboardList,
+  Megaphone,
+  ShieldCheck,
+  MessageCircle,
+} from "lucide-react";
+
+export const sidebarMenus = {
+  member: [
+    { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    { name: "Profile", icon: User, path: "/team/zamiul" },
+    { name: "Messages", icon: MessageCircle, path: "/messages" },
+    { name: "Contests", icon: Trophy, path: "/contests" },
+    { name: "My Projects", icon: FolderKanban, path: "/my-projects" },
+    { name: "My Dub Videos", icon: Video, path: "/my-dub-videos" },
+    { name: "Upload Dub", icon: Upload, path: "/upload-dub" },
+    { name: "Notifications", icon: Bell, path: "/notifications" },
+    { name: "Rewards", icon: Trophy, path: "/rewards" },
+    { name: "Leaderboard", icon: Medal, path: "/leaderboard" },
+    { name: "Settings", icon: Settings, path: "/settings" },
+  ],
+
+  admin: [
+    { name: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+    { name: "Messages", icon: MessageCircle, path: "/messages" },
+    { name: "Members", icon: Users, path: "/admin/members" },
+    { name: "Projects", icon: FolderKanban, path: "/admin/projects" },
+    { name: "Contests", icon: Trophy, path: "/admin/contests" },
+    { name: "Announcements", icon: Megaphone, path: "/admin/announcements" },
+    { name: "Leaderboard", icon: Medal, path: "/leaderboard" },
+    { name: "Settings", icon: Settings, path: "/settings" },
+  ],
+
+  founder: [
+    { name: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+    { name: "Messages", icon: MessageCircle, path: "/messages" },
+    { name: "Members", icon: Users, path: "/admin/members" },
+    { name: "Projects", icon: FolderKanban, path: "/admin/projects" },
+    { name: "Contests", icon: Trophy, path: "/admin/contests" },
+    { name: "Announcements", icon: Megaphone, path: "/admin/announcements" },
+    { name: "Admins", icon: ShieldCheck, path: "/admin/admins" },
+    { name: "Reports", icon: ClipboardList, path: "/admin/reports" },
+    { name: "Leaderboard", icon: Medal, path: "/leaderboard" },
+    { name: "Settings", icon: Settings, path: "/settings" },
+  ],
+};

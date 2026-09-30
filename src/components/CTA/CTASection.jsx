@@ -27,23 +27,35 @@ function CTASection() {
             and help bring anime to life in Bangla.
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-5">
-            <Button
-  onClick={() =>
-    window.open("https://discord.gg/your-server", "_blank")
-  }
->
-  🎤 Join Discord
-</Button>
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <a
+              href="https://www.facebook.com/share/g/19MxBAkZsX/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold text-base shadow-[0_0_25px_rgba(24,119,242,0.45)] transition transform hover:-translate-y-0.5"
+            >
+              <span className="w-6 h-6 rounded-lg bg-white text-[#1877F2] flex items-center justify-center font-black text-sm">
+                f
+              </span>
+              Join Our Official Facebook Group — LOV CORPORATION
+            </a>
 
             <Button
-  variant="secondary"
-  onClick={() =>
-    window.open("https://youtube.com/@legionofvocals", "_blank")
-  }
->
-  📺 Visit YouTube
-</Button>
+              onClick={() =>
+                window.open("https://discord.gg/your-server", "_blank")
+              }
+            >
+              🎤 Join Discord
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() =>
+                window.open("https://youtube.com/@legionofvocals", "_blank")
+              }
+            >
+              📺 Visit YouTube
+            </Button>
           </div>
         </motion.div>
       </Container>

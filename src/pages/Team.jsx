@@ -9,9 +9,10 @@ import DepartmentFilter from "../components/Team/DepartmentFilter";
 import MemberSearch from "../components/Team/MemberSearch";
 import MemberGrid from "../components/Team/MemberGrid";
 
-import members from "../data/members";
+import { useMembers } from "../hooks/useMembers";
 
 function Team() {
+  const { members } = useMembers();
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [search, setSearch] = useState("");
 
@@ -20,19 +21,14 @@ function Team() {
       selectedDepartment === "All" ||
       member.department === selectedDepartment;
 
+    const keyword = search.toLowerCase().trim();
     const searchMatch =
-      member.fullName
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      member.displayName
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      member.username
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      member.role
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      member.fullName.toLowerCase().includes(keyword) ||
+      member.displayName.toLowerCase().includes(keyword) ||
+      member.username.toLowerCase().includes(keyword) ||
+      member.role.toLowerCase().includes(keyword) ||
+      (member.lovId && member.lovId.toLowerCase().includes(keyword)) ||
+      (member.email && member.email.toLowerCase().includes(keyword));
 
     return departmentMatch && searchMatch;
   });

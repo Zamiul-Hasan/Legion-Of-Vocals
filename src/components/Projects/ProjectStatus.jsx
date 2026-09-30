@@ -1,10 +1,15 @@
 import { motion } from "framer-motion";
 
-function ProjectStatus({ project }) {
+function ProjectStatus({ project, dubCount = 0, contributorCount = 0 }) {
+  const videosTotal =
+    dubCount || (Array.isArray(project.dubVideos) ? project.dubVideos.length : 0);
+  const contributorsTotal =
+    contributorCount ||
+    (Array.isArray(project.contributors) ? project.contributors.length : 1);
+
   return (
     <section className="bg-slate-950 py-20">
       <div className="max-w-7xl mx-auto px-6">
-
         {/* Section Title */}
         <div className="mb-12">
           <h2 className="text-4xl font-bold text-white">
@@ -52,7 +57,7 @@ function ProjectStatus({ project }) {
             </h3>
 
             <p className="mt-3 text-2xl font-bold text-white">
-              {project.dubVideos.length}
+              {videosTotal}
             </p>
           </div>
 
@@ -63,7 +68,7 @@ function ProjectStatus({ project }) {
             </h3>
 
             <p className="mt-3 text-2xl font-bold text-white">
-              {project.contributors.length}
+              {contributorsTotal}
             </p>
           </div>
         </motion.div>
@@ -85,7 +90,6 @@ function ProjectStatus({ project }) {
             />
           </div>
         </div>
-
       </div>
     </section>
   );

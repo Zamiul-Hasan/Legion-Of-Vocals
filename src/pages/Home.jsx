@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar/Navbar";
 import Hero from "../components/Hero/Hero";
+import ContestLaunchBanner from "../components/Contest/ContestLaunchBanner";
 import Announcement from "../components/Announcement/Announcement";
 import FeaturedProjects from "../components/FeaturedProjects/FeaturedProjects";
 import AboutSection from "../components/About/AboutSection";
@@ -12,12 +13,13 @@ function Home() {
     <>
       <Navbar />
       <Hero />
-       <AboutSection />
+      <ContestLaunchBanner isCompactHome={true} />
+      <AboutSection />
       <Announcement />
       <FeaturedProjects />
-       <GalleryPreview />
-       <CTASection />
-       <Footer />
+      <GalleryPreview />
+      <CTASection />
+      <Footer />
     </>
   );
 }

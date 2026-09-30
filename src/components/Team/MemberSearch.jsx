@@ -14,7 +14,7 @@ function MemberSearch({ value, onChange }) {
 
           <input
             type="text"
-            placeholder="Search members..."
+            placeholder="Search by Unique LOV ID (e.g. LOV-100001), name, username, or role..."
             value={value}
             onChange={(e) => onChange(e.target.value)}
             className="w-full pl-14 pr-5 py-4 rounded-2xl bg-slate-900 border border-cyan-500/20 text-white outline-none focus:border-cyan-400"

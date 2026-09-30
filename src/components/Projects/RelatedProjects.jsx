@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import Container from "../UI/Container";
-import projects from "../../data/projects";
+import { useProjects } from "../../hooks/useProjects";
 
 function RelatedProjects({ currentProjectId }) {
+  const { projects } = useProjects();
   const relatedProjects = projects
     .filter((project) => project.id !== currentProjectId)
     .slice(0, 3);

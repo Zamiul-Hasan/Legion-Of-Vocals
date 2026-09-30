@@ -1,18 +1,24 @@
 const announcements = [
   {
     id: 1,
-    title: "🎙️ Voice Actor Recruitment Open",
-    date: "July 2026",
+    title: "🌐 Join Our Official Facebook Group: LOV CORPORATION",
+    date: "Official Community",
+    link: "https://www.facebook.com/share/g/19MxBAkZsX/",
+    linkLabel: "Join Group →",
   },
   {
     id: 2,
-    title: "🔥 New Anime Dub Coming Soon",
-    date: "Coming Soon",
+    title: "🎙️ Voice Actor Recruitment Open",
+    date: "July 2026",
+    link: "/join",
+    linkLabel: "Apply Now →",
   },
   {
     id: 3,
-    title: "🎉 Welcome to the Official LOV Website",
-    date: "Latest",
+    title: "🔥 New Anime Dub Coming Soon",
+    date: "Coming Soon",
+    link: "/projects",
+    linkLabel: "View Projects →",
   },
 ];
 

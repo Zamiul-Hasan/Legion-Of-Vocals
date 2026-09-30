@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
 import Footer from "../components/Footer/Footer";
 
-import members from "../data/members";
+import { useMembers } from "../hooks/useMembers";
+import BackButton from "../components/UI/BackButton";
 
 import ProfileBanner from "../components/Team/ProfileBanner";
 import ProfileAbout from "../components/Team/ProfileAbout";
@@ -15,9 +16,12 @@ import ProfileSocials from "../components/Team/ProfileSocials";
 
 function MemberProfile() {
   const { username } = useParams();
+  const { members } = useMembers();
 
   const member = members.find(
-    (m) => m.username === username
+    (m) =>
+      m.username.toLowerCase() === username.toLowerCase() ||
+      (m.lovId && m.lovId.toLowerCase() === username.toLowerCase())
   );
 
   if (!member) {

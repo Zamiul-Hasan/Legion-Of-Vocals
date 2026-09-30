@@ -1,7 +1,8 @@
 import ProjectCard from "./ProjectCard";
-import projects from "../../data/projects";
+import { useProjects } from "../../hooks/useProjects";
 
 function ProjectGrid({ activeFilter, searchTerm }) {
+  const { projects } = useProjects();
   const filteredProjects = projects.filter((project) => {
     const matchesFilter =
       activeFilter === "All" || project.status === activeFilter;
