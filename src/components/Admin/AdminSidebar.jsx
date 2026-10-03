@@ -17,12 +17,21 @@ import {
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import logo from "../../assets/images/logos/logo.png";
 import { useMembers } from "../../hooks/useMembers";
+import useAuth from "../../hooks/useAuth";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
 
 function AdminSidebar() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const { currentUser, updateMemberAvatar } = useMembers();
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+
+  const displayUser = currentUser || {
+    id: 1,
+    fullName: "Zamiul Hasan",
+    avatar: logo,
+    role: "Founder",
+  };
 
   const menus = [
     {
@@ -104,8 +113,8 @@ function AdminSidebar() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
-              src={currentUser.avatar}
-              alt={currentUser.fullName}
+              src={displayUser.avatar}
+              alt={displayUser.fullName}
               onClick={() => setAvatarModalOpen(true)}
               className="w-12 h-12 rounded-full border-2 border-cyan-400 object-cover bg-slate-900 cursor-pointer"
               title="Click to update profile picture"
@@ -121,7 +130,7 @@ function AdminSidebar() {
           </div>
           <div>
             <h3 className="text-white font-semibold text-sm">
-              {currentUser.fullName}
+              {displayUser.fullName}
             </h3>
             <p className="text-cyan-400 text-xs">
               Founder & Studio Lead
@@ -174,8 +183,11 @@ function AdminSidebar() {
         </Link>
 
         <button
-          onClick={() => navigate("/")}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-400 hover:bg-red-500/15 border border-red-500/20 text-sm font-medium transition"
+          onClick={async () => {
+            await signOut();
+            navigate("/");
+          }}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-400 hover:bg-red-500/15 border border-red-500/20 text-sm font-medium transition cursor-pointer"
         >
           <LogOut size={18} />
           Logout
@@ -185,9 +197,9 @@ function AdminSidebar() {
       <ProfilePictureModal
         isOpen={avatarModalOpen}
         onClose={() => setAvatarModalOpen(false)}
-        member={currentUser}
+        member={displayUser}
         onSave={(newAvatar, options) =>
-          updateMemberAvatar(currentUser.id, newAvatar, options)
+          updateMemberAvatar(displayUser.id, newAvatar, options)
         }
       />
     </aside>

@@ -28,6 +28,7 @@ import Leaderboard from "../pages/Leaderboard";
 import Settings from "../pages/Settings";
 
 import NotFound from "../pages/NotFound";
+import ProtectedRoute from "./ProtectedRoute";
 
 function AppRoutes() {
   return (
@@ -45,31 +46,143 @@ function AppRoutes() {
       <Route path="/gallery" element={<Gallery />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/join" element={<JoinLOV />} />
-
-      {/* ===================== */}
-      {/* Member Dashboard */}
-      {/* ===================== */}
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/my-projects" element={<MyProjects />} />
-      <Route path="/my-dub-videos" element={<MyDubVideos />} />
-      <Route path="/upload-dub" element={<UploadDub />} />
-      <Route path="/messages" element={<Messages />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/rewards" element={<Rewards />} />
       <Route path="/leaderboard" element={<Leaderboard />} />
-      <Route path="/settings" element={<Settings />} />
 
       {/* ===================== */}
-      {/* Admin Panel */}
+      {/* Member Dashboard (Protected) */}
       {/* ===================== */}
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/members" element={<Members />} />
-      <Route path="/admin/pending-users" element={<PendingUsers />} />
-      <Route path="/admin/projects" element={<AdminProjects />} />
-      <Route path="/admin/contests" element={<AdminContests />} />
-      <Route path="/admin/dubs" element={<MyDubVideos />} />
-      <Route path="/admin/rewards" element={<Rewards />} />
-      <Route path="/admin/settings" element={<Settings />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute redirectAdminToAdminDashboard>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-projects"
+        element={
+          <ProtectedRoute>
+            <MyProjects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-dub-videos"
+        element={
+          <ProtectedRoute>
+            <MyDubVideos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upload-dub"
+        element={
+          <ProtectedRoute>
+            <UploadDub />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rewards"
+        element={
+          <ProtectedRoute>
+            <Rewards />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ===================== */}
+      {/* Admin Panel (Admin / Founder Only) */}
+      {/* ===================== */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/members"
+        element={
+          <ProtectedRoute requireAdmin>
+            <Members />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pending-users"
+        element={
+          <ProtectedRoute requireAdmin>
+            <PendingUsers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/projects"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminProjects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/contests"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminContests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dubs"
+        element={
+          <ProtectedRoute requireAdmin>
+            <MyDubVideos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/rewards"
+        element={
+          <ProtectedRoute requireAdmin>
+            <Rewards />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <ProtectedRoute requireAdmin>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
 
       {/* ===================== */}
       {/* 404 */}

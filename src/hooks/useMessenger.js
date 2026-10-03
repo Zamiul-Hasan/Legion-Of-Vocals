@@ -1,33 +1,37 @@
 import { useState, useEffect } from "react";
 import { loadMembers } from "./useMembers";
+import { loadCurrentUser } from "./useAuth";
 
-const MESSENGER_STORAGE_KEY = "lov_messenger_threads_v2";
 const MESSENGER_EVENT = "lov-messenger-updated";
 export const OPEN_CHAT_EVENT = "lov-open-messenger-chat";
 
-// Fresh start: Clean production threads and contacts.
-// Dynamic contacts are populated directly from real registered members via Supabase Auth & useMembers.
-const extraStudioMembers = [];
-const initialThreads = {};
+function getStorageKey() {
+  const current = loadCurrentUser();
+  return current?.username
+    ? `lov_msg_threads_${current.username.toLowerCase()}`
+    : "lov_msg_threads_guest";
+}
 
 export function loadThreads() {
   try {
-    const saved = localStorage.getItem(MESSENGER_STORAGE_KEY);
+    const key = getStorageKey();
+    const saved = localStorage.getItem(key);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === "object") {
-        return { ...initialThreads, ...parsed };
+        return parsed;
       }
     }
   } catch {
     // ignore storage errors
   }
-  return initialThreads;
+  return {};
 }
 
 export function saveThreads(threads) {
   try {
-    localStorage.setItem(MESSENGER_STORAGE_KEY, JSON.stringify(threads));
+    const key = getStorageKey();
+    localStorage.setItem(key, JSON.stringify(threads));
   } catch {
     // ignore storage errors
   }
@@ -61,15 +65,22 @@ export function useMessenger() {
     };
   }, []);
 
-  // Build contacts list directly from registered studio members
+  const authUser = loadCurrentUser();
+  const myUsername = authUser?.username?.toLowerCase();
+
+  // Build contacts list directly from registered studio members, excluding myself
   const allMembers = loadMembers();
-  const contacts = [
-    ...allMembers.map((m, idx) => ({
-      ...m,
-      online: idx === 0, // Founder is active
-    })),
-    ...extraStudioMembers,
-  ].map((member) => {
+  let availableMembers = allMembers.filter(
+    (m) => m.username && m.username.toLowerCase() !== myUsername
+  );
+
+  // If user is someone else and Founder is not in availableMembers, ensure Founder is in contacts
+  if (myUsername !== "zamiul" && !availableMembers.some((m) => m.username === "zamiul")) {
+    const founder = allMembers.find((m) => m.username === "zamiul");
+    if (founder) availableMembers.unshift(founder);
+  }
+
+  const contacts = availableMembers.map((member, idx) => {
     const thread = threads[member.username] || { unread: 0, messages: [] };
     const lastMsg =
       thread.messages && thread.messages.length > 0
@@ -77,6 +88,7 @@ export function useMessenger() {
         : null;
     return {
       ...member,
+      online: idx === 0,
       unread: thread.unread || 0,
       lastMessage: lastMsg,
       messages: thread.messages || [],

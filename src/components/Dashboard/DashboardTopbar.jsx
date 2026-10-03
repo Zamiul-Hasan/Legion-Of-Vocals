@@ -24,6 +24,14 @@ import ProfilePictureModal from "../Profile/ProfilePictureModal";
 
 function DashboardTopbar() {
   const { currentUser, updateMemberAvatar } = useMembers();
+  const user = currentUser || {
+    id: 1,
+    displayName: "Member",
+    username: "member",
+    lovId: "LOV-MEMBER",
+    level: 1,
+    avatar: "https://i.pravatar.cc/150?img=33",
+  };
   const { totalUnread } = useMessenger();
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
@@ -241,10 +249,10 @@ function DashboardTopbar() {
           {/* User with Facebook-style Camera Button */}
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Link to={`/team/${currentUser.username}`}>
+              <Link to={`/team/${user.username}`}>
                 <img
-                  src={currentUser.avatar}
-                  alt={currentUser.displayName}
+                  src={user.avatar}
+                  alt={user.displayName}
                   className="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover bg-slate-900"
                 />
               </Link>
@@ -259,15 +267,15 @@ function DashboardTopbar() {
             </div>
 
             <Link
-              to={`/team/${currentUser.username}`}
+              to={`/team/${user.username}`}
               className="hidden md:flex items-center gap-2 group"
             >
               <div className="text-left">
                 <h4 className="text-white font-semibold text-sm group-hover:text-cyan-400 transition">
-                  {currentUser.displayName}
+                  {user.displayName}
                 </h4>
                 <p className="text-xs text-cyan-400">
-                  {currentUser.lovId} • Lv.{currentUser.level}
+                  {user.lovId} • Lv.{user.level}
                 </p>
               </div>
               <ChevronDown size={16} className="text-gray-400" />
@@ -279,9 +287,9 @@ function DashboardTopbar() {
       <ProfilePictureModal
         isOpen={avatarModalOpen}
         onClose={() => setAvatarModalOpen(false)}
-        member={currentUser}
+        member={user}
         onSave={(newAvatar, options) =>
-          updateMemberAvatar(currentUser.id, newAvatar, options)
+          updateMemberAvatar(user.id, newAvatar, options)
         }
       />
     </header>

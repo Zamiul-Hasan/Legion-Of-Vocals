@@ -4,6 +4,7 @@ export const defaultNotifications = [
   {
     id: 1,
     category: "System",
+    recipient: "zamiul",
     title: "Welcome to Legion of Vocals Production Portal",
     message:
       "Your Legion of Vocals creator profile is active with ID LOV-2026-0001. Live registrations are open!",
@@ -37,7 +38,7 @@ export function saveNotifications(list) {
   window.dispatchEvent(new Event(EVENT_NAME));
 }
 
-export function useNotifications() {
+export function useNotifications(targetUsername) {
   const [notifications, setNotifications] = useState(() => loadNotifications());
 
   useEffect(() => {
@@ -53,10 +54,30 @@ export function useNotifications() {
     };
   }, []);
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  // Filter notifications only for the target user or broadcasts
+  const userNotifications = targetUsername
+    ? notifications.filter(
+        (n) =>
+          !n.recipient ||
+          n.recipient === "all" ||
+          n.recipient.toLowerCase() === targetUsername.toLowerCase()
+      )
+    : notifications;
+
+  const unreadCount = userNotifications.filter((n) => n.unread).length;
 
   const markAllRead = () => {
-    const updated = notifications.map((n) => ({ ...n, unread: false }));
+    const updated = notifications.map((n) => {
+      if (
+        !targetUsername ||
+        !n.recipient ||
+        n.recipient === "all" ||
+        n.recipient.toLowerCase() === targetUsername.toLowerCase()
+      ) {
+        return { ...n, unread: false };
+      }
+      return n;
+    });
     setNotifications(updated);
     saveNotifications(updated);
   };
@@ -89,7 +110,7 @@ export function useNotifications() {
   };
 
   return {
-    notifications,
+    notifications: userNotifications,
     unreadCount,
     markAllRead,
     markRead,

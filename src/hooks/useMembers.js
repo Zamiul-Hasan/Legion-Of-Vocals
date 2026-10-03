@@ -3,6 +3,7 @@ import defaultMembers from "../data/members";
 import { loadNotifications, saveNotifications } from "../data/notifications";
 import { memberService } from "../services/memberService";
 import { isSupabaseConfigured } from "../lib/supabase";
+import { loadCurrentUser } from "./useAuth";
 
 const MEMBERS_STORAGE_KEY = "lov_members_v2";
 const MEMBERS_EVENT = "lov-members-updated";
@@ -153,7 +154,15 @@ export function useMembers() {
     updateMemberProfile(idOrUsername, { cover: coverDataUrl });
   };
 
-  const currentUser = members[0] || defaultMembers[0];
+  const authUser = loadCurrentUser();
+  const currentUser = authUser
+    ? members.find(
+        (m) =>
+          (m.username && m.username.toLowerCase() === authUser.username?.toLowerCase()) ||
+          (m.email && m.email.toLowerCase() === authUser.email?.toLowerCase()) ||
+          (m.lovId && m.lovId.toLowerCase() === authUser.lovId?.toLowerCase())
+      ) || authUser
+    : null;
 
   return {
     members,
