@@ -26,7 +26,8 @@ function Navbar() {
   const { isAuthenticated, isAdmin, user, signOut } = useAuth();
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-slate-950/75 backdrop-blur-xl border-b border-cyan-500/20">
+    <>
+      <header className="fixed top-0 left-0 w-full z-50 bg-slate-950/75 backdrop-blur-xl border-b border-cyan-500/20">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group">
@@ -225,14 +226,15 @@ function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Modals */}
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
-      <TeamAuditionModal
-        isOpen={auditionOpen}
-        onClose={() => setAuditionOpen(false)}
-      />
     </header>
+
+    {/* Modals rendered outside header containing block */}
+    <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+    <TeamAuditionModal
+      isOpen={auditionOpen}
+      onClose={() => setAuditionOpen(false)}
+    />
+  </>
   );
 }
 

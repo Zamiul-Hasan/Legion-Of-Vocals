@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -79,28 +80,29 @@ export default function LoginModal({ isOpen, onClose }) {
     setError("");
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-md rounded-3xl bg-slate-900 border border-cyan-500/30 p-8 shadow-2xl shadow-cyan-500/10"
+          className="relative w-full max-w-md my-auto rounded-3xl bg-slate-900 border border-cyan-500/30 p-7 sm:p-8 shadow-2xl shadow-cyan-500/10 text-white"
         >
           {/* Close button */}
           <button
             type="button"
             onClick={onClose}
             className="absolute top-5 right-5 p-2 rounded-xl text-gray-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            aria-label="Close Modal"
           >
             <X size={20} />
           </button>
 
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className="inline-flex p-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 mb-3">
+          <div className="text-center mb-6 pt-1">
+            <div className="inline-flex p-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 mb-3 shadow-inner">
               <LogIn size={26} />
             </div>
             <h2 className="text-2xl font-bold text-white tracking-wide">
@@ -132,7 +134,7 @@ export default function LoginModal({ isOpen, onClose }) {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="Email or Username"
-                className="w-full rounded-2xl border border-slate-700 bg-slate-850 pl-11 pr-4 py-3.5 text-white text-sm outline-none transition focus:border-cyan-400 focus:bg-slate-800"
+                className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 pl-11 pr-4 py-3.5 text-white text-sm outline-none transition focus:border-cyan-400 focus:bg-slate-800"
               />
             </div>
 
@@ -147,12 +149,12 @@ export default function LoginModal({ isOpen, onClose }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full rounded-2xl border border-slate-700 bg-slate-850 pl-11 pr-11 py-3.5 text-white text-sm outline-none transition focus:border-cyan-400 focus:bg-slate-800"
+                className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 pl-11 pr-11 py-3.5 text-white text-sm outline-none transition focus:border-cyan-400 focus:bg-slate-800"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -192,7 +194,7 @@ export default function LoginModal({ isOpen, onClose }) {
           </div>
 
           {/* Divider */}
-          <div className="relative my-5">
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-800" />
             </div>
@@ -208,7 +210,7 @@ export default function LoginModal({ isOpen, onClose }) {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
-            className="w-full py-3 rounded-2xl border border-slate-700 hover:border-cyan-400/50 bg-slate-850 hover:bg-slate-800 text-white font-medium text-xs flex items-center justify-center gap-2.5 transition cursor-pointer"
+            className="w-full py-3 rounded-2xl border border-slate-700 hover:border-cyan-400/50 bg-slate-800/90 hover:bg-slate-800 text-white font-medium text-xs flex items-center justify-center gap-2.5 transition cursor-pointer"
           >
             {googleLoading ? (
               <Loader2 size={16} className="animate-spin text-cyan-400" />
@@ -236,7 +238,7 @@ export default function LoginModal({ isOpen, onClose }) {
           </button>
 
           {/* Register Link */}
-          <div className="mt-5 text-center text-xs text-gray-400">
+          <div className="mt-4 text-center text-xs text-gray-400">
             <span>Don't have an account? </span>
             <Link
               to="/join"
@@ -249,6 +251,7 @@ export default function LoginModal({ isOpen, onClose }) {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

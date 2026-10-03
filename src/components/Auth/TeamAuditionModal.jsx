@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -71,15 +72,15 @@ export default function TeamAuditionModal({ isOpen, onClose }) {
     onClose();
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-cyan-500/30 p-8 shadow-2xl shadow-cyan-500/10"
+          className="relative w-full max-w-lg my-auto rounded-3xl bg-slate-900 border border-cyan-500/30 p-7 sm:p-8 shadow-2xl shadow-cyan-500/10 text-white"
         >
           {/* Close button */}
           <button
@@ -226,6 +227,7 @@ export default function TeamAuditionModal({ isOpen, onClose }) {
           )}
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
