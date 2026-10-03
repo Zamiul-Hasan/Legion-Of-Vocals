@@ -76,17 +76,146 @@ export function saveCoverOverride(key, coverUrl) {
   }
 }
 
+export function cleanupStaleStorage() {
+  try {
+    // 1. Clean up lov_avatar_overrides: migrate any avatar from 'zamiul' to 'ovi', '1', 'lov-2026-0001'
+    const overridesRaw = localStorage.getItem(AVATAR_OVERRIDES_KEY);
+    if (overridesRaw) {
+      const overrides = JSON.parse(overridesRaw);
+      const founderAvatar =
+        overrides["zamiul"] ||
+        overrides["ovi"] ||
+        overrides["lov-2026-0001"] ||
+        overrides["1"] ||
+        overrides["zamiulhasan6@gmail.com"];
+
+      if (founderAvatar) {
+        overrides["ovi"] = founderAvatar;
+        overrides["1"] = founderAvatar;
+        overrides["lov-2026-0001"] = founderAvatar;
+        overrides["zamiulhasan6@gmail.com"] = founderAvatar;
+        delete overrides["zamiul"];
+        delete overrides["zamiul.hasan@gmail.com"];
+        localStorage.setItem(AVATAR_OVERRIDES_KEY, JSON.stringify(overrides));
+      }
+    }
+
+    // 2. Clean up lov_cover_overrides
+    const coverRaw = localStorage.getItem(COVER_OVERRIDES_KEY);
+    if (coverRaw) {
+      const covers = JSON.parse(coverRaw);
+      const founderCover =
+        covers["zamiul"] ||
+        covers["ovi"] ||
+        covers["lov-2026-0001"] ||
+        covers["1"] ||
+        covers["zamiulhasan6@gmail.com"];
+
+      if (founderCover) {
+        covers["ovi"] = founderCover;
+        covers["1"] = founderCover;
+        covers["lov-2026-0001"] = founderCover;
+        covers["zamiulhasan6@gmail.com"] = founderCover;
+        delete covers["zamiul"];
+        delete covers["zamiul.hasan@gmail.com"];
+        localStorage.setItem(COVER_OVERRIDES_KEY, JSON.stringify(covers));
+      }
+    }
+
+    // 3. Clean up lov_current_user_v2 & legacy lov_current_user
+    ["lov_current_user_v2", "lov_current_user"].forEach((k) => {
+      const curRaw = localStorage.getItem(k);
+      if (curRaw) {
+        const cur = JSON.parse(curRaw);
+        if (
+          cur &&
+          (String(cur.id) === "1" ||
+            cur.username === "zamiul" ||
+            cur.username === "ovi" ||
+            cur.email === "zamiul.hasan@gmail.com" ||
+            cur.email === "zamiulhasan6@gmail.com" ||
+            cur.lovId === "LOV-2026-0001")
+        ) {
+          const healed = {
+            ...cur,
+            id: 1,
+            fullName: "MD Zamiul Hasan",
+            displayName: "MD Zamiul Hasan",
+            username: "ovi",
+            email: "zamiulhasan6@gmail.com",
+            role: "founder",
+            roleLabel: "Founder & Studio Lead",
+            lovId: "LOV-2026-0001",
+          };
+          localStorage.setItem(k, JSON.stringify(healed));
+        }
+      }
+    });
+
+    // 4. Clean up lov_members_v2
+    const memRaw = localStorage.getItem(MEMBERS_STORAGE_KEY);
+    if (memRaw) {
+      const mems = JSON.parse(memRaw);
+      if (Array.isArray(mems)) {
+        const cleaned = mems
+          .filter(
+            (m) =>
+              !(
+                (m.username === "zamiul" || m.email === "zamiul.hasan@gmail.com") &&
+                m.email !== "zamiulhasan6@gmail.com" &&
+                m.username !== "ovi" &&
+                String(m.id) !== "1"
+              )
+          )
+          .map((m) => {
+            if (
+              String(m.id) === "1" ||
+              m.lovId === "LOV-2026-0001" ||
+              m.email === "zamiulhasan6@gmail.com" ||
+              m.email === "zamiul.hasan@gmail.com" ||
+              m.username === "ovi" ||
+              m.username === "zamiul"
+            ) {
+              return {
+                ...m,
+                id: 1,
+                fullName: "MD Zamiul Hasan",
+                displayName: "MD Zamiul Hasan",
+                username: "ovi",
+                email: "zamiulhasan6@gmail.com",
+                role: "Founder",
+                lovId: "LOV-2026-0001",
+              };
+            }
+            return m;
+          });
+        localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(cleaned));
+      }
+    }
+  } catch {
+    // ignore errors
+  }
+}
+
 function applyOverrides(memberList) {
   const avatarOverrides = getAvatarOverrides();
   const coverOverrides = getCoverOverrides();
 
   return memberList.map((m) => {
-    const keys = [
-      m.id != null ? String(m.id).toLowerCase() : null,
-      m.username ? m.username.toLowerCase() : null,
-      m.lovId ? m.lovId.toLowerCase() : null,
-      m.email ? m.email.toLowerCase() : null,
-    ].filter(Boolean);
+    const isFounder =
+      String(m.id) === "1" ||
+      (m.lovId && m.lovId.toLowerCase() === "lov-2026-0001") ||
+      (m.email && m.email.toLowerCase() === "zamiulhasan6@gmail.com") ||
+      (m.username && (m.username.toLowerCase() === "ovi" || m.username.toLowerCase() === "zamiul"));
+
+    const keys = isFounder
+      ? ["1", "ovi", "zamiul", "lov-2026-0001", "zamiulhasan6@gmail.com", "zamiul.hasan@gmail.com"]
+      : [
+          m.id != null ? String(m.id).toLowerCase() : null,
+          m.username ? m.username.toLowerCase() : null,
+          m.lovId ? m.lovId.toLowerCase() : null,
+          m.email ? m.email.toLowerCase() : null,
+        ].filter(Boolean);
 
     let avatar = m.avatar;
     for (const k of keys) {
@@ -104,6 +233,21 @@ function applyOverrides(memberList) {
       }
     }
 
+    if (isFounder) {
+      return {
+        ...m,
+        id: 1,
+        fullName: "MD Zamiul Hasan",
+        displayName: "MD Zamiul Hasan",
+        username: "ovi",
+        email: "zamiulhasan6@gmail.com",
+        role: "Founder",
+        lovId: "LOV-2026-0001",
+        avatar,
+        cover,
+      };
+    }
+
     return {
       ...m,
       avatar,
@@ -114,35 +258,70 @@ function applyOverrides(memberList) {
 
 export function loadMembers() {
   try {
+    cleanupStaleStorage();
+
     const raw = localStorage.getItem(MEMBERS_STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw);
       if (Array.isArray(saved) && saved.length > 0) {
         // Merge saved overrides with defaultMembers so any new fields exist
         const merged = defaultMembers.map((def) => {
+          const isFounder = def.id === 1 || def.lovId === "LOV-2026-0001";
           const found = saved.find(
             (s) =>
               String(s.id) === String(def.id) ||
               (s.username && def.username &&
                 s.username.toLowerCase() === def.username.toLowerCase()) ||
               (s.lovId && def.lovId &&
-                s.lovId.toLowerCase() === def.lovId.toLowerCase())
+                s.lovId.toLowerCase() === def.lovId.toLowerCase()) ||
+              (isFounder &&
+                (s.username === "zamiul" ||
+                  s.email === "zamiul.hasan@gmail.com" ||
+                  s.email === "zamiulhasan6@gmail.com"))
           );
-          return found ? { ...def, ...found } : def;
+
+          if (!found) return def;
+
+          // If Founder, preserve legit info strictly:
+          if (isFounder) {
+            return {
+              ...def,
+              avatar: found.avatar || def.avatar,
+              cover: found.cover || def.cover,
+              avatarFrame: found.avatarFrame || def.avatarFrame,
+              avatarCaption: found.avatarCaption || def.avatarCaption,
+              stats: found.stats || def.stats,
+              fullName: "MD Zamiul Hasan",
+              displayName: "MD Zamiul Hasan",
+              username: "ovi",
+              email: "zamiulhasan6@gmail.com",
+              role: "Founder",
+              lovId: "LOV-2026-0001",
+            };
+          }
+
+          return { ...def, ...found };
         });
-        // Include any newly added members not in defaultMembers
+
+        // Filter out any duplicate or stale founder entries
         const extra = saved.filter(
           (s) =>
             !defaultMembers.some(
               (def) =>
                 String(def.id) === String(s.id) ||
+                (def.lovId && s.lovId && def.lovId.toLowerCase() === s.lovId.toLowerCase()) ||
                 (def.username &&
                   s.username &&
                   def.username.toLowerCase() === s.username.toLowerCase()) ||
-                (def.lovId &&
-                  s.lovId &&
-                  def.lovId.toLowerCase() === s.lovId.toLowerCase())
-            )
+                (def.email &&
+                  s.email &&
+                  def.email.toLowerCase() === s.email.toLowerCase())
+            ) &&
+            s.email?.toLowerCase() !== "zamiul.hasan@gmail.com" &&
+            s.email?.toLowerCase() !== "zamiulhasan6@gmail.com" &&
+            s.username?.toLowerCase() !== "zamiul" &&
+            s.username?.toLowerCase() !== "ovi" &&
+            s.lovId?.toLowerCase() !== "lov-2026-0001"
         );
         return applyOverrides([...merged, ...extra]);
       }

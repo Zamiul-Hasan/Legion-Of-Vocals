@@ -8,18 +8,39 @@ const AUTH_EVENT = "lov-auth-updated";
 
 export function loadCurrentUser() {
   try {
-    const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+    const saved = localStorage.getItem(AUTH_STORAGE_KEY) || localStorage.getItem("lov_current_user");
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && (parsed.role || parsed.email || parsed.username)) {
+        const isFounderUser =
+          String(parsed.id) === "1" ||
+          parsed.username === "zamiul" ||
+          parsed.username === "ovi" ||
+          parsed.email === "zamiul.hasan@gmail.com" ||
+          parsed.email === "zamiulhasan6@gmail.com" ||
+          parsed.lovId === "LOV-2026-0001";
+
+        if (isFounderUser) {
+          parsed.id = 1;
+          parsed.fullName = "MD Zamiul Hasan";
+          parsed.displayName = "MD Zamiul Hasan";
+          parsed.username = "ovi";
+          parsed.email = "zamiulhasan6@gmail.com";
+          parsed.role = "founder";
+          parsed.roleLabel = "Founder & Studio Lead";
+          parsed.lovId = "LOV-2026-0001";
+        }
+
         try {
           const overrides = JSON.parse(localStorage.getItem("lov_avatar_overrides") || "{}");
-          const keys = [
-            parsed.id != null ? String(parsed.id).toLowerCase() : null,
-            parsed.username ? parsed.username.toLowerCase() : null,
-            parsed.lovId ? parsed.lovId.toLowerCase() : null,
-            parsed.email ? parsed.email.toLowerCase() : null,
-          ].filter(Boolean);
+          const keys = isFounderUser
+            ? ["1", "ovi", "zamiul", "lov-2026-0001", "zamiulhasan6@gmail.com", "zamiul.hasan@gmail.com"]
+            : [
+                parsed.id != null ? String(parsed.id).toLowerCase() : null,
+                parsed.username ? parsed.username.toLowerCase() : null,
+                parsed.lovId ? parsed.lovId.toLowerCase() : null,
+                parsed.email ? parsed.email.toLowerCase() : null,
+              ].filter(Boolean);
 
           for (const k of keys) {
             if (overrides[k]) {
@@ -85,17 +106,16 @@ export function useAuth() {
         if (session?.user) {
           const su = session.user;
           const isFounderEmail =
-            su.email?.toLowerCase() === "zamiul.hasan@gmail.com" ||
-            su.email?.toLowerCase() === "zamiulhasan2@gmail.com";
+            su.email?.toLowerCase() === "zamiulhasan6@gmail.com";
 
           const googleUser = {
             id: su.id,
             lovId:
               su.user_metadata?.lov_id ||
               (isFounderEmail ? "LOV-2026-0001" : `LOV-${su.id.slice(0, 6).toUpperCase()}`),
-            fullName: su.user_metadata?.full_name || su.email.split("@")[0],
-            displayName: su.user_metadata?.full_name || su.email.split("@")[0],
-            username: su.user_metadata?.user_name || su.email.split("@")[0],
+            fullName: su.user_metadata?.full_name || (isFounderEmail ? "MD Zamiul Hasan" : su.email.split("@")[0]),
+            displayName: su.user_metadata?.full_name || (isFounderEmail ? "MD Zamiul Hasan" : su.email.split("@")[0]),
+            username: su.user_metadata?.user_name || (isFounderEmail ? "ovi" : su.email.split("@")[0]),
             email: su.email,
             avatar: su.user_metadata?.avatar_url,
             role: isFounderEmail ? "founder" : (su.user_metadata?.role || "member"),
