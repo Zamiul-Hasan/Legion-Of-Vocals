@@ -34,17 +34,44 @@ function ContestLeaderboardSection() {
 
   const rounds = activeContest?.rounds || [];
 
-  // Calculate rankings for each contestant
+  // Calculate rankings for each unique contestant (grouped so each competitor appears once)
   const rankedContestants = useMemo(() => {
-    const entries = activeContest?.entries || [];
-    const enriched = entries.map((entry) => {
-      const summary = getEntryPointsSummary(entry, rounds);
+    const rawEntries = activeContest?.entries || [];
+
+    const competitorMap = new Map();
+
+    rawEntries.forEach((entry) => {
+      const cleanLovId = (entry.lovId || "").trim().toLowerCase();
+      const cleanEmail = (entry.email || "").trim().toLowerCase();
+      const cleanName = (entry.participantName || "").trim().toLowerCase();
+      const key = cleanLovId || cleanEmail || cleanName;
+
+      if (!competitorMap.has(key)) {
+        competitorMap.set(key, {
+          ...entry,
+          roundScores: { ...(entry.roundScores || {}) },
+        });
+      } else {
+        const existing = competitorMap.get(key);
+        existing.roundScores = {
+          ...existing.roundScores,
+          ...(entry.roundScores || {}),
+        };
+        if (entry.videoUrl && !existing.videoUrl) existing.videoUrl = entry.videoUrl;
+        if (entry.images?.length && !existing.images?.length) existing.images = entry.images;
+      }
+    });
+
+    const uniqueCompetitors = Array.from(competitorMap.values());
+
+    const enriched = uniqueCompetitors.map((competitor) => {
+      const summary = getEntryPointsSummary(competitor, rounds);
       const displayScore =
         roundScope === "ALL"
           ? summary.grandTotal
           : summary.perRound[roundScope]?.total || 0;
       return {
-        ...entry,
+        ...competitor,
         summary,
         displayScore,
       };
@@ -213,7 +240,7 @@ function ContestLeaderboardSection() {
                     : undefined
                 }
               >
-                🏆 All Rounds Combined + Votes
+                🏆 All Rounds Combined
               </button>
 
               {rounds.map((r) => {
@@ -365,9 +392,6 @@ function ContestLeaderboardSection() {
                         </span>
                       );
                     })}
-                    <span className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-white/10 text-[11px] font-bold text-pink-300">
-                      Votes: +{contestant.summary.votePoints}
-                    </span>
                   </div>
 
                   {/* Total Score Banner */}
@@ -429,12 +453,6 @@ function ContestLeaderboardSection() {
                         </span>
                       </th>
                     ))}
-                    <th className="py-4 px-4 text-center">
-                      Vote Bonus
-                      <span className="block text-[10px] text-gray-400 normal-case">
-                        (2 pts / vote)
-                      </span>
-                    </th>
                     <th className="py-4 px-5 text-right">Total Points</th>
                     {canManageProjects && (
                       <th className="py-4 px-5 text-right">
@@ -550,16 +568,6 @@ function ContestLeaderboardSection() {
                           </td>
                         );
                       })}
-
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-pink-300">
-                          <Heart
-                            size={12}
-                            className="fill-pink-400 text-pink-400"
-                          />
-                          +{item.summary.votePoints}
-                        </span>
-                      </td>
 
                       <td className="py-4 px-5 text-right">
                         <span

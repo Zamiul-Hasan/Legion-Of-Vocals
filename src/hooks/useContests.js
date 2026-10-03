@@ -64,8 +64,9 @@ export function getEntryPointsSummary(entry, rounds = []) {
     });
   }
 
-  const votePoints = (Number(entry?.votes) || 0) * 2;
-  const grandTotal = judgeTotal + votePoints;
+  // Voting points are removed per contest rules; points are awarded exclusively by judges
+  const votePoints = 0;
+  const grandTotal = judgeTotal;
 
   return {
     perRound,
@@ -125,6 +126,26 @@ const DEFAULT_CONTESTS = [
   },
 ];
 
+export function deduplicateContestEntries(entries = []) {
+  const seenRoundParticipant = new Set();
+  const cleaned = [];
+
+  for (const entry of entries) {
+    const cleanRound = entry.roundId || "round-1";
+    const cleanLovId = (entry.lovId || "").trim().toLowerCase();
+    const cleanEmail = (entry.email || "").trim().toLowerCase();
+    const cleanName = (entry.participantName || "").trim().toLowerCase();
+    const key = `${cleanRound}__${cleanLovId || cleanEmail || cleanName}`;
+
+    if (!seenRoundParticipant.has(key)) {
+      seenRoundParticipant.add(key);
+      cleaned.push(entry);
+    }
+  }
+
+  return cleaned;
+}
+
 function loadContests() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -136,10 +157,10 @@ function loadContests() {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return DEFAULT_CONTESTS;
     }
-    // Ensure existing entries have roundScores initialized
+    // Ensure entries are deduplicated per round and have roundScores initialized
     return parsed.map((c) => ({
       ...c,
-      entries: (c.entries || []).map((e) => {
+      entries: deduplicateContestEntries(c.entries || []).map((e) => {
         if (e.roundScores) return e;
         const fallbackDefault = DEFAULT_CONTESTS[0].entries.find(
           (de) => de.id === e.id
@@ -401,8 +422,37 @@ export function useContests() {
         ? entryData.caption.trim()
         : `${(entryData.caption || "").trim()} ${roundTag}`.trim();
 
+      // Prevent duplicate submissions in the same round
+      const cleanRoundId = targetRound?.id || "round-1";
+      const cleanName = (entryData.participantName || "").trim().toLowerCase();
+      const cleanEmail = (entryData.email || "").trim().toLowerCase();
+      const cleanLovId = (entryData.lovId || "").trim().toLowerCase();
+
+      const alreadySubmitted = (contest.entries || []).some((e) => {
+        if (e.roundId !== cleanRoundId) return false;
+        if (cleanLovId && (e.lovId || "").toLowerCase() === cleanLovId) return true;
+        if (cleanEmail && (e.email || "").toLowerCase() === cleanEmail) return true;
+        return (e.participantName || "").trim().toLowerCase() === cleanName;
+      });
+
+      if (alreadySubmitted) {
+        throw new Error(
+          `You have already submitted an entry for Round ${
+            targetRound?.roundNumber || 1
+          }. Each participant is limited to 1 submission per round.`
+        );
+      }
+
+      // Reuse existing contestant code if participant competed in another round
+      const existingCompetitor = (contest.entries || []).find((e) => {
+        if (cleanLovId && (e.lovId || "").toLowerCase() === cleanLovId) return true;
+        if (cleanEmail && (e.email || "").toLowerCase() === cleanEmail) return true;
+        return (e.participantName || "").trim().toLowerCase() === cleanName;
+      });
+
       const nextNum = 101 + (contest.entries?.length || 0);
-      const contestantCode = `LOV-C2026-${nextNum}`;
+      const contestantCode =
+        existingCompetitor?.contestantCode || `LOV-C2026-${nextNum}`;
 
       const uploadedImages = Array.isArray(entryData.images)
         ? entryData.images.filter(Boolean)

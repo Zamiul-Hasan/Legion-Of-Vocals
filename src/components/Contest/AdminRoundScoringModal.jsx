@@ -283,15 +283,7 @@ function AdminRoundScoringModal({
                 </strong>
               </div>
               <div>
-                <span className="text-gray-400">
-                  Community Vote Bonus ({entry.votes || 0} votes × 2):{" "}
-                </span>
-                <strong className="text-pink-400">
-                  +{summary.votePoints} pts
-                </strong>
-              </div>
-              <div>
-                <span className="text-gray-400">Grand Total Leaderboard: </span>
+                <span className="text-gray-400">Total Leaderboard Score: </span>
                 <strong className="text-yellow-400 text-sm">
                   {summary.grandTotal} pts
                 </strong>

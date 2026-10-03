@@ -33,10 +33,9 @@ function RegisterForm({
         setStepError("Please enter your Full Name and Username.");
         return;
       }
-      if (!formData.emailVerified) {
-        setStepError(
-          "Please verify your email address using the 'Verify Real Email' button before continuing."
-        );
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!formData.email || !emailRegex.test(formData.email.trim())) {
+        setStepError("Please enter a valid email address (e.g. name@gmail.com).");
         return;
       }
       if (!formData.password || formData.password.length < 6) {

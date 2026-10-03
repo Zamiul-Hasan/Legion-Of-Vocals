@@ -11,6 +11,7 @@ import {
   Sparkles,
   ImagePlus,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import { useMembers } from "../../hooks/useMembers";
 import { extractHashtags } from "../../hooks/useContests";
@@ -51,6 +52,7 @@ function ContestRegisterModal({
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [caption, setCaption] = useState("");
   const [submittedEntry, setSubmittedEntry] = useState(null);
+  const [submitError, setSubmitError] = useState("");
 
   const selectedRoundObj =
     contest?.rounds?.find((r) => r.id === roundId) ||
@@ -65,6 +67,7 @@ function ContestRegisterModal({
   useEffect(() => {
     if (!isOpen) return;
     setSubmittedEntry(null);
+    setSubmitError("");
     setUploadedImages([]);
     setImageUrlInput("");
     const nextRoundId = activeRound?.id || contest?.rounds?.[0]?.id || "round-1";
@@ -147,29 +150,63 @@ function ContestRegisterModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!participantName.trim() || !characterAndAnime.trim()) return;
+    setSubmitError("");
 
-    const memberObj =
-      participantType === "LOV Member"
-        ? members.find((item) => item.username === selectedMemberUsername)
-        : null;
+    if (!participantName.trim() || !characterAndAnime.trim()) {
+      setSubmitError(
+        "Please fill out your name and the character/anime you are dubbing."
+      );
+      return;
+    }
 
-    const created = onSubmitEntry(contest.id, {
-      roundId,
-      participantType,
-      participantName: participantName.trim(),
-      lovId: participantType === "LOV Member" ? lovId : null,
-      email: email.trim(),
-      socialLink: socialLink.trim(),
-      roleCategory,
-      avatar: memberObj?.avatar || "",
-      characterAndAnime: characterAndAnime.trim(),
-      videoUrl: videoUrl.trim(),
-      images: uploadedImages,
-      caption: caption.trim(),
+    // Check if participant has already submitted for this specific round
+    const cleanName = participantName.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanLovId = (lovId || "").trim().toLowerCase();
+
+    const alreadySubmitted = (contest.entries || []).some((entry) => {
+      if (entry.roundId !== roundId) return false;
+      if (cleanLovId && (entry.lovId || "").toLowerCase() === cleanLovId)
+        return true;
+      if (cleanEmail && (entry.email || "").toLowerCase() === cleanEmail)
+        return true;
+      return (entry.participantName || "").trim().toLowerCase() === cleanName;
     });
 
-    setSubmittedEntry(created);
+    if (alreadySubmitted) {
+      setSubmitError(
+        `You have already submitted an entry for Round ${
+          selectedRoundObj?.roundNumber || 1
+        }! Each participant is limited to 1 submission per round.`
+      );
+      return;
+    }
+
+    try {
+      const memberObj =
+        participantType === "LOV Member"
+          ? members.find((item) => item.username === selectedMemberUsername)
+          : null;
+
+      const created = onSubmitEntry(contest.id, {
+        roundId,
+        participantType,
+        participantName: participantName.trim(),
+        lovId: participantType === "LOV Member" ? lovId : null,
+        email: email.trim(),
+        socialLink: socialLink.trim(),
+        roleCategory,
+        avatar: memberObj?.avatar || "",
+        characterAndAnime: characterAndAnime.trim(),
+        videoUrl: videoUrl.trim(),
+        images: uploadedImages,
+        caption: caption.trim(),
+      });
+
+      setSubmittedEntry(created);
+    } catch (err) {
+      setSubmitError(err.message || "Failed to submit entry.");
+    }
   };
 
   const liveTags = extractHashtags(caption, officialRoundTag);
@@ -271,6 +308,13 @@ function ContestRegisterModal({
               onSubmit={handleSubmit}
               className="p-6 space-y-5 max-h-[80vh] overflow-y-auto"
             >
+              {submitError && (
+                <div className="p-4 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-sm flex items-center gap-3">
+                  <AlertCircle size={20} className="shrink-0 text-red-400" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
               {/* Competitor Type Selector: LOV Member vs Outsider */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
