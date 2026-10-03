@@ -21,42 +21,6 @@ import ContestLeaderboardSection from "../components/Contest/ContestLeaderboardS
 import AdminRoundScoringModal from "../components/Contest/AdminRoundScoringModal";
 import AILeaderboardDesignerModal from "../components/Contest/AILeaderboardDesignerModal";
 
-const extraContributors = [
-  {
-    id: 4,
-    username: "tanvir_va",
-    fullName: "Tanvir Rahman",
-    displayName: "Tanvir",
-    avatar: defaultMembers[0].avatar,
-    department: "Voice Acting",
-    role: "Senior VA",
-    level: 18,
-    stats: { projects: 3, dubVideos: 7, points: 1240 },
-  },
-  {
-    id: 5,
-    username: "nafis_sfx",
-    fullName: "Nafis Karin",
-    displayName: "Nafis",
-    avatar: defaultMembers[0].avatar,
-    department: "Sound Engineering",
-    role: "Audio Lead",
-    level: 15,
-    stats: { projects: 3, dubVideos: 6, points: 1120 },
-  },
-  {
-    id: 6,
-    username: "sadia_trans",
-    fullName: "Sadia Islam",
-    displayName: "Sadia",
-    avatar: defaultMembers[0].avatar,
-    department: "Translation",
-    role: "Translator",
-    level: 12,
-    stats: { projects: 2, dubVideos: 5, points: 840 },
-  },
-];
-
 function Leaderboard() {
   const { members } = useMembers();
   const {
@@ -80,8 +44,8 @@ function Leaderboard() {
   const [scoringInitialRound, setScoringInitialRound] = useState(null);
   const [showAIDesigner, setShowAIDesigner] = useState(false);
 
-  const allRanked = [...members, ...extraContributors].sort(
-    (a, b) => b.stats.points - a.stats.points
+  const allRanked = [...members].sort(
+    (a, b) => (b.stats?.points || 0) - (a.stats?.points || 0)
   );
 
   const topThree = allRanked.slice(0, 3);

@@ -3,47 +3,17 @@ import { useState, useEffect } from "react";
 export const defaultNotifications = [
   {
     id: 1,
-    category: "Projects",
-    title: "New Dubbing Script Assigned: Solo Leveling Ep. 2",
-    message:
-      "You have been assigned lines 42–68 for Sung Jinwoo. Deadline is 05 October 2026.",
-    time: "15 minutes ago",
-    unread: true,
-    link: "/my-projects",
-  },
-  {
-    id: 2,
-    category: "Points",
-    title: "+180 Contribution Points Awarded!",
-    message:
-      "Your final audio mix for Demon Slayer Episode 3 was approved by the QA team.",
-    time: "2 hours ago",
-    unread: true,
-    link: "/rewards",
-  },
-  {
-    id: 3,
-    category: "Announcements",
-    title: "🎙️ Voice Actor Recruitment Open for Blue Lock",
-    message:
-      "Casting calls for Ego Jinpachi, Bachira, and Kunigami are now live in the studio channel.",
-    time: "Yesterday",
-    unread: true,
-    link: "/projects/3",
-  },
-  {
-    id: 4,
     category: "System",
-    title: "Profile & LOV ID Verified (LOV-100001)",
+    title: "Welcome to Legion of Vocals Production Portal",
     message:
-      "Your Legion of Vocals creator profile and email are verified on the public Team directory.",
-    time: "3 days ago",
-    unread: false,
+      "Your Legion of Vocals creator profile is active with ID LOV-2026-0001. Live registrations are open!",
+    time: "Just now",
+    unread: true,
     link: "/team/zamiul",
   },
 ];
 
-const STORAGE_KEY = "lov_notifications";
+const STORAGE_KEY = "lov_notifications_v2";
 const EVENT_NAME = "lov-notifications-updated";
 
 export function loadNotifications() {

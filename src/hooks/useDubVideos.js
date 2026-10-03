@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import initialDubVideos from "../data/dubVideos";
 import { loadNotifications, saveNotifications } from "../data/notifications";
 
-const DUBS_STORAGE_KEY = "lov_dub_videos";
+const DUBS_STORAGE_KEY = "lov_dub_videos_v2";
 const LEGACY_UPLOAD_KEY = "uploadedDubs";
 const DUBS_EVENT = "lov-dubs-updated";
 

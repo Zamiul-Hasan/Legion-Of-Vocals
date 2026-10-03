@@ -4,7 +4,7 @@ import { loadNotifications, saveNotifications } from "../data/notifications";
 import { memberService } from "../services/memberService";
 import { isSupabaseConfigured } from "../lib/supabase";
 
-const MEMBERS_STORAGE_KEY = "lov_members_data";
+const MEMBERS_STORAGE_KEY = "lov_members_v2";
 const MEMBERS_EVENT = "lov-members-updated";
 
 export function loadMembers() {

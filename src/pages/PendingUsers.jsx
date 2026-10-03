@@ -13,10 +13,14 @@ import initialPendingUsers from "../data/pendingUsers";
 
 function PendingUsers() {
   const [pendingUsers, setPendingUsers] = useState(() => {
-    const saved = localStorage.getItem("pendingUsers");
+    const saved = localStorage.getItem("lov_pending_users_v2");
     if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.length > 0 ? parsed : initialPendingUsers;
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // ignore
+      }
     }
     return initialPendingUsers;
   });
@@ -29,7 +33,7 @@ function PendingUsers() {
 
   useEffect(() => {
     localStorage.setItem(
-      "pendingUsers",
+      "lov_pending_users_v2",
       JSON.stringify(pendingUsers)
     );
   }, [pendingUsers]);

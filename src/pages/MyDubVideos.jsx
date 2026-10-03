@@ -101,7 +101,19 @@ function MyDubVideos() {
         </div>
 
         {/* Videos Grid */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredVideos.length === 0 ? (
+          <div className="p-12 rounded-3xl bg-slate-900 border border-cyan-500/20 text-center">
+            <Video size={40} className="mx-auto mb-3 text-cyan-400 opacity-60" />
+            <p className="text-gray-300 font-medium">No dub videos uploaded yet.</p>
+            <p className="text-gray-500 text-xs mt-1">Upload your first episode dub cut to start building your studio portfolio!</p>
+            <Link to="/upload-dub" className="mt-4 inline-block">
+              <Button size="sm" leftIcon={<Upload size={14} />}>
+                Upload Dub
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredVideos.map((video) => {
             const isPublished =
               (video.status || "Published") === "Published" &&
@@ -240,6 +252,7 @@ function MyDubVideos() {
             );
           })}
         </div>
+        )}
 
         {/* Video Player Modal */}
         <VideoPlayerModal

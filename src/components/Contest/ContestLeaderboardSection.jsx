@@ -259,8 +259,28 @@ function ContestLeaderboardSection() {
             )}
           </div>
 
-          {/* TOP 3 PODIUM CARDS */}
-          <div className="grid md:grid-cols-3 gap-6">
+          {/* EMPTY STATE OR PODIUM + STANDINGS */}
+          {rankedContestants.length === 0 ? (
+            <div className="py-16 px-6 text-center rounded-3xl border border-white/10 bg-slate-950/60 backdrop-blur-xl">
+              <Trophy
+                size={48}
+                className="mx-auto mb-4 opacity-70"
+                style={{ color: theme.goldHex }}
+              />
+              <h3 className="text-xl font-bold text-white">
+                Championship Auditions Are Open!
+              </h3>
+              <p className="text-sm text-gray-300 mt-2 max-w-md mx-auto">
+                No submissions recorded yet for this round. Be the first to register and submit your Bangla anime voice reel with{" "}
+                <span className="font-semibold" style={{ color: theme.accentHex }}>
+                  {activeContest?.officialHashtag || "#lov_contest_round1"}
+                </span>!
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* TOP 3 PODIUM CARDS */}
+              <div className="grid md:grid-cols-3 gap-6">
             {topThree.map((contestant, idx) => {
               const medals = [
                 "🥇 #1 Grand Leader",
@@ -576,6 +596,8 @@ function ContestLeaderboardSection() {
               </table>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 

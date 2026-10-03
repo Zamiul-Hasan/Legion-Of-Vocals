@@ -149,33 +149,39 @@ function MyProjects() {
                     </h4>
 
                     <div className="space-y-2.5">
-                      {projectTasks.map((t) => (
-                        <div
-                          key={t.id}
-                          className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex items-start justify-between gap-2"
-                        >
-                          <div className="flex items-start gap-2">
-                            {t.status === "Completed" ? (
-                              <CheckCircle2
-                                size={15}
-                                className="text-green-400 shrink-0 mt-0.5"
-                              />
-                            ) : (
-                              <Clock
-                                size={15}
-                                className="text-cyan-400 shrink-0 mt-0.5"
-                              />
-                            )}
-                            <div>
-                              <p className="text-white font-medium">{t.title}</p>
-                              <p className="text-gray-500 mt-0.5">{t.episode}</p>
+                      {projectTasks.length === 0 ? (
+                        <p className="text-gray-500 text-xs italic py-2">
+                          No active production tasks assigned yet.
+                        </p>
+                      ) : (
+                        projectTasks.map((t) => (
+                          <div
+                            key={t.id}
+                            className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex items-start justify-between gap-2"
+                          >
+                            <div className="flex items-start gap-2">
+                              {t.status === "Completed" ? (
+                                <CheckCircle2
+                                  size={15}
+                                  className="text-green-400 shrink-0 mt-0.5"
+                                />
+                              ) : (
+                                <Clock
+                                  size={15}
+                                  className="text-cyan-400 shrink-0 mt-0.5"
+                                />
+                              )}
+                              <div>
+                                <p className="text-white font-medium">{t.title}</p>
+                                <p className="text-gray-500 mt-0.5">{t.episode}</p>
+                              </div>
                             </div>
+                            <span className="text-yellow-400 font-semibold shrink-0">
+                              +{t.points}p
+                            </span>
                           </div>
-                          <span className="text-yellow-400 font-semibold shrink-0">
-                            +{t.points}p
-                          </span>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
 

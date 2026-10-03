@@ -14,7 +14,7 @@ const projects = [
     title: "Demon Slayer",
     status: "Completed",
     description:
-      "Full Bangla Dub by Legion of Vocals featuring studio-grade vocal mastering and localized dialogue.",
+      "Official Bangla Dub project by Legion of Vocals featuring localized dialogue and character voice acting.",
     image: demonSlayerBanner,
     banner: demonSlayerBanner,
     category: "Anime Dub",
@@ -22,8 +22,8 @@ const projects = [
     director: "Zamiul Hasan",
     progress: 100,
     releaseDate: "January 2026",
-    dubVideos: [1, 2, 3],
-    contributors: [1, 2, 3],
+    dubVideos: [],
+    contributors: [1],
   },
 
   {
@@ -31,16 +31,16 @@ const projects = [
     title: "Solo Leveling",
     status: "Ongoing",
     description:
-      "New Bangla dub episodes of Solo Leveling are currently in active production by the LOV studio team.",
+      "Bangla dub production of Solo Leveling in active development by the Legion of Vocals studio team.",
     image: soloLevelingBanner,
     banner: soloLevelingBanner,
     category: "Anime Dub",
     episodes: "12 Episodes",
     director: "Zamiul Hasan",
-    progress: 45,
+    progress: 35,
     releaseDate: "July 2026",
-    dubVideos: [4],
-    contributors: [1, 2],
+    dubVideos: [],
+    contributors: [1],
   },
 
   {
@@ -48,7 +48,7 @@ const projects = [
     title: "Blue Lock",
     status: "Upcoming",
     description:
-      "The Blue Lock Bangla Dub is currently in pre-production and casting. Stay tuned for updates from Legion of Vocals.",
+      "The Blue Lock Bangla Dub is currently in pre-production and open casting calls. Stay tuned for auditions!",
     image: blueLockBanner,
     banner: blueLockBanner,
     category: "Anime Dub",
