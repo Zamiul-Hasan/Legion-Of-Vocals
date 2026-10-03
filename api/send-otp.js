@@ -77,16 +77,28 @@ export default async function handler(req, res) {
 
       if (response.ok) {
         return res.status(200).json({ success: true, delivered: true });
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        return res.status(response.status).json({
+          success: false,
+          error: "RESEND_FAILED",
+          message: errData.message || "Failed to dispatch email via Resend.",
+        });
       }
     } catch (e) {
       console.error("Resend API delivery error:", e);
+      return res.status(500).json({
+        success: false,
+        error: "RESEND_ERROR",
+        message: e.message || "Network error while connecting to Resend.",
+      });
     }
   }
 
-  // Fallback successful response for local / direct verification
-  return res.status(200).json({
-    success: true,
-    delivered: true,
-    message: `Verification code queued for ${cleanEmail}`,
+  // If no email dispatch key is configured in Vercel
+  return res.status(503).json({
+    success: false,
+    error: "NO_EMAIL_SERVICE",
+    message: "Email dispatch service is not configured (RESEND_API_KEY missing on Vercel).",
   });
 }

@@ -96,8 +96,16 @@ function BasicInfoStep({ formData, setFormData }) {
     }
 
     // Dispatch real OTP to Gmail
-    await emailService.sendVerificationOtp(normalizedEmail);
+    const sendResult = await emailService.sendVerificationOtp(normalizedEmail);
     setCheckingEmail(false);
+
+    if (!sendResult.success) {
+      setEmailError(
+        sendResult.reason || "Failed to dispatch verification code to Gmail."
+      );
+      return;
+    }
+
     setOtpSent(true);
     setResendCountdown(30);
 
@@ -108,9 +116,9 @@ function BasicInfoStep({ formData, setFormData }) {
     });
   };
 
-  const handleConfirmOtp = () => {
+  const handleConfirmOtp = async () => {
     setEmailError("");
-    const verifyResult = emailService.verifyOtp(formData.email, enteredOtp);
+    const verifyResult = await emailService.verifyOtp(formData.email, enteredOtp);
 
     if (verifyResult.success) {
       setFormData({

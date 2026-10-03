@@ -1,15 +1,17 @@
 // ==============================================================================
 // LEGION OF VOCALS — EMAIL VERIFICATION SERVICE
-// Handles real 6-digit OTP generation, serverless email dispatch, & verification
+// Dual dispatch: Supabase built-in Auth OTP & Vercel Resend fallback
 // ==============================================================================
+
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 const OTP_STORAGE_PREFIX = "lov_email_otp_";
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
 export const emailService = {
   /**
-   * Generates a 6-digit OTP and dispatches it to the recipient's Gmail inbox.
-   * Never displays the OTP on screen.
+   * Dispatches a 6-digit OTP to the recipient's Gmail inbox.
+   * Tries Supabase built-in transactional email first, falls back to Vercel /api/send-otp.
    */
   async sendVerificationOtp(email) {
     const cleanEmail = (email || "").trim().toLowerCase();
@@ -17,35 +19,30 @@ export const emailService = {
       return { success: false, reason: "Please provide a valid email address." };
     }
 
-    // Generate cryptographically random 6-digit OTP
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    // 1. Try Supabase Auth built-in OTP email dispatch
+    if (isSupabaseConfigured()) {
+      try {
+        const { error: sbError } = await supabase.auth.signInWithOtp({
+          email: cleanEmail,
+        });
 
-    // Store in sessionStorage with expiration (never visible in DOM)
-    try {
-      const payload = {
-        code,
-        email: cleanEmail,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + OTP_EXPIRY_MS,
-      };
-      sessionStorage.setItem(
-        `${OTP_STORAGE_PREFIX}${cleanEmail}`,
-        JSON.stringify(payload)
-      );
-    } catch {
-      // ignore storage errors
+        if (!sbError) {
+          sessionStorage.setItem(`lov_otp_provider_${cleanEmail}`, "supabase");
+          return {
+            success: true,
+            provider: "supabase",
+            message: `Verification code sent to ${cleanEmail} via Supabase Mail.`,
+          };
+        } else {
+          console.warn("[LOV Auth] Supabase OTP dispatch issue:", sbError.message);
+        }
+      } catch (err) {
+        console.warn("[LOV Auth] Supabase OTP error:", err);
+      }
     }
 
-    // Console security trace (useful for developers testing in DevTools F12)
-    console.log(
-      `%c[LOV Security]%c 6-digit OTP dispatched to %c${cleanEmail}%c. Check inbox or spam folder.`,
-      "color: #38bdf8; font-weight: bold",
-      "color: #cbd5e1",
-      "color: #4ade80; font-weight: bold",
-      "color: #cbd5e1"
-    );
-
-    // Dispatch via Vercel serverless function or Web3Forms API
+    // 2. Generate local 6-digit code and dispatch via Vercel /api/send-otp (Resend)
+    const code = String(Math.floor(100000 + Math.random() * 900000));
     try {
       const response = await fetch("/api/send-otp", {
         method: "POST",
@@ -57,23 +54,40 @@ export const emailService = {
         }),
       });
 
-      if (response.ok) {
-        return { success: true, message: `Verification code sent to ${cleanEmail}` };
+      const resData = await response.json().catch(() => ({}));
+      if (response.ok && resData.success) {
+        sessionStorage.setItem(`lov_otp_provider_${cleanEmail}`, "session");
+        sessionStorage.setItem(
+          `${OTP_STORAGE_PREFIX}${cleanEmail}`,
+          JSON.stringify({
+            code,
+            email: cleanEmail,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + OTP_EXPIRY_MS,
+          })
+        );
+        return {
+          success: true,
+          provider: "resend",
+          message: `Verification code sent to ${cleanEmail} via Resend.`,
+        };
       }
     } catch {
-      // In offline / local preview mode without API endpoint running
+      // API call failed
     }
 
+    // 3. If neither email provider is operational:
     return {
-      success: true,
-      message: `Verification code sent to ${cleanEmail}. Please check your Gmail inbox.`,
+      success: false,
+      reason:
+        "Email dispatch is not configured yet. To receive OTP in Gmail, run the SQL fix in your Supabase SQL Editor (to use Supabase's free built-in mailer) or add RESEND_API_KEY to Vercel.",
     };
   },
 
   /**
    * Verifies the OTP entered by the user.
    */
-  verifyOtp(email, enteredCode) {
+  async verifyOtp(email, enteredCode) {
     const cleanEmail = (email || "").trim().toLowerCase();
     const cleanCode = (enteredCode || "").trim();
 
@@ -84,40 +98,53 @@ export const emailService = {
       };
     }
 
+    const provider = sessionStorage.getItem(`lov_otp_provider_${cleanEmail}`);
+
+    // If sent via Supabase OTP:
+    if (provider === "supabase" && isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanCode,
+          type: "email",
+        });
+
+        if (!error && data?.user) {
+          sessionStorage.removeItem(`lov_otp_provider_${cleanEmail}`);
+          return { success: true };
+        }
+      } catch {
+        // Fall back to local check if Supabase verify had an error
+      }
+    }
+
+    // Check local session storage fallback
     try {
       const raw = sessionStorage.getItem(`${OTP_STORAGE_PREFIX}${cleanEmail}`);
-      if (!raw) {
-        return {
-          success: false,
-          reason: "No active verification code found. Please click 'Verify Real Email' to request a new code.",
-        };
-      }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Date.now() > parsed.expiresAt) {
+          sessionStorage.removeItem(`${OTP_STORAGE_PREFIX}${cleanEmail}`);
+          return {
+            success: false,
+            reason: "The verification code has expired. Please request a new code.",
+          };
+        }
 
-      const parsed = JSON.parse(raw);
-      if (Date.now() > parsed.expiresAt) {
-        sessionStorage.removeItem(`${OTP_STORAGE_PREFIX}${cleanEmail}`);
-        return {
-          success: false,
-          reason: "The verification code has expired. Please request a new code.",
-        };
+        if (parsed.code === cleanCode) {
+          sessionStorage.removeItem(`${OTP_STORAGE_PREFIX}${cleanEmail}`);
+          sessionStorage.removeItem(`lov_otp_provider_${cleanEmail}`);
+          return { success: true };
+        }
       }
-
-      if (parsed.code === cleanCode) {
-        // Clear used OTP for security
-        sessionStorage.removeItem(`${OTP_STORAGE_PREFIX}${cleanEmail}`);
-        return { success: true };
-      }
-
-      return {
-        success: false,
-        reason: "Incorrect verification code. Please check your Gmail inbox and enter the 6-digit code.",
-      };
     } catch {
-      return {
-        success: false,
-        reason: "Verification failed. Please try requesting a new code.",
-      };
+      // storage read error
     }
+
+    return {
+      success: false,
+      reason: "Incorrect verification code. Please check your Gmail and enter the 6-digit code.",
+    };
   },
 };
 

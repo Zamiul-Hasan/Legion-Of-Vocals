@@ -51,14 +51,58 @@ export const authService = {
       };
     }
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          skipBrowserRedirect: true,
+        },
+      });
 
-    return { data, error };
+      if (error) {
+        return { data: null, error };
+      }
+
+      if (data?.url) {
+        // Probe the OAuth URL to check if Google provider is enabled in Supabase
+        const probe = await fetch(data.url);
+        if (!probe.ok) {
+          const body = await probe.json().catch(() => ({}));
+          if (
+            body.msg?.includes("not enabled") ||
+            body.error_code === "validation_failed"
+          ) {
+            return {
+              data: null,
+              error: {
+                message:
+                  "Google Provider is currently disabled in your Supabase project. To enable it, visit Supabase Dashboard > Authentication > Providers > Google and switch it ON.",
+                code: "PROVIDER_DISABLED",
+              },
+            };
+          }
+          return {
+            data: null,
+            error: {
+              message:
+                body.msg || `Google login failed with HTTP ${probe.status}`,
+            },
+          };
+        }
+
+        // Provider is enabled and validated, navigate smoothly
+        window.location.href = data.url;
+        return { data, error: null };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      return {
+        data: null,
+        error: { message: err.message || "Failed to initiate Google sign in." },
+      };
+    }
   },
 
   // Sign out
