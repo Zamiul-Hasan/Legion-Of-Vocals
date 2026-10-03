@@ -4,13 +4,13 @@ export const defaultNotifications = [
   {
     id: 1,
     category: "System",
-    recipient: "zamiul",
+    recipient: "ovi",
     title: "Welcome to Legion of Vocals Production Portal",
     message:
       "Your Legion of Vocals creator profile is active with ID LOV-2026-0001. Live registrations are open!",
     time: "Just now",
     unread: true,
-    link: "/team/zamiul",
+    link: "/team/ovi",
   },
 ];
 

@@ -36,7 +36,7 @@ function ContestRegisterModal({
 
   const [participantType, setParticipantType] = useState("Outsider"); // "LOV Member" | "Outsider"
   const [selectedMemberUsername, setSelectedMemberUsername] = useState(
-    currentUser?.username || "zamiul"
+    currentUser?.username || "ovi"
   );
   const [roundId, setRoundId] = useState(activeRound?.id || "round-1");
   const [participantName, setParticipantName] = useState("");

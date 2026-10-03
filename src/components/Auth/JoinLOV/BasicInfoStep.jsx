@@ -259,7 +259,7 @@ function BasicInfoStep({ formData, setFormData }) {
             name="username"
             value={formData.username}
             onChange={handleChange}
-            placeholder="Username (e.g. zamiul)"
+            placeholder="Username (e.g. ovi)"
             className={inputStyle}
           />
         </div>

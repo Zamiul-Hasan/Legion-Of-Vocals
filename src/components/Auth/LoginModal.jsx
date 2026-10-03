@@ -150,16 +150,16 @@ export default function LoginModal({ isOpen, onClose }) {
 
     // 1. Check founder account
     const isFounder =
+      clean === "ovi" ||
       clean === "zamiul" ||
-      clean === "zamiul.hasan@gmail.com" ||
-      clean === "zamiulhasan2@gmail.com" ||
+      clean === "zamiulhasan6@gmail.com" ||
       clean === "lov-2026-0001";
     if (isFounder) {
       return {
         type: "founder",
-        email: "zamiul.hasan@gmail.com",
-        name: "Zamiul Hasan",
-        username: "zamiul",
+        email: "zamiulhasan6@gmail.com",
+        name: "MD Zamiul Hasan",
+        username: "ovi",
       };
     }
 

@@ -18,7 +18,7 @@ import {
 export const sidebarMenus = {
   member: [
     { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    { name: "Profile", icon: User, path: "/team/zamiul" },
+    { name: "Profile", icon: User, path: "/team/ovi" },
     { name: "Messages", icon: MessageCircle, path: "/messages" },
     { name: "Contests", icon: Trophy, path: "/contests" },
     { name: "My Projects", icon: FolderKanban, path: "/my-projects" },

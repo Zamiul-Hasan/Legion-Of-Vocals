@@ -42,7 +42,7 @@ export function openChatWithMember(usernameOrMember) {
   const username =
     typeof usernameOrMember === "string"
       ? usernameOrMember
-      : usernameOrMember?.username || "zamiul";
+      : usernameOrMember?.username || "ovi";
 
   window.dispatchEvent(
     new CustomEvent(OPEN_CHAT_EVENT, { detail: { username } })
@@ -75,8 +75,8 @@ export function useMessenger() {
   );
 
   // If user is someone else and Founder is not in availableMembers, ensure Founder is in contacts
-  if (myUsername !== "zamiul" && !availableMembers.some((m) => m.username === "zamiul")) {
-    const founder = allMembers.find((m) => m.username === "zamiul");
+  if (myUsername !== "ovi" && !availableMembers.some((m) => m.username === "ovi")) {
+    const founder = allMembers.find((m) => m.username === "ovi");
     if (founder) availableMembers.unshift(founder);
   }
 

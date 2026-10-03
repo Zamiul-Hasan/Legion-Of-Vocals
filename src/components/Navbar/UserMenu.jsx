@@ -89,7 +89,7 @@ function UserMenu() {
         onClick={() => {
           setOpen(false);
           setNotifOpen(false);
-          openChatWithMember("zamiul");
+          openChatWithMember("ovi");
         }}
         aria-label="LOV Messenger"
         title="Open LOV Messenger"

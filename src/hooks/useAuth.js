@@ -110,17 +110,16 @@ export function useAuth() {
         if (event === "SIGNED_IN" && session?.user) {
           const su = session.user;
           const isFounderEmail =
-            su.email?.toLowerCase() === "zamiul.hasan@gmail.com" ||
-            su.email?.toLowerCase() === "zamiulhasan2@gmail.com";
+            su.email?.toLowerCase() === "zamiulhasan6@gmail.com";
 
           const googleUser = {
             id: su.id,
             lovId:
               su.user_metadata?.lov_id ||
               (isFounderEmail ? "LOV-2026-0001" : `LOV-${su.id.slice(0, 6).toUpperCase()}`),
-            fullName: su.user_metadata?.full_name || su.email.split("@")[0],
-            displayName: su.user_metadata?.full_name || su.email.split("@")[0],
-            username: su.user_metadata?.user_name || su.email.split("@")[0],
+            fullName: su.user_metadata?.full_name || (isFounderEmail ? "MD Zamiul Hasan" : su.email.split("@")[0]),
+            displayName: su.user_metadata?.full_name || (isFounderEmail ? "MD Zamiul Hasan" : su.email.split("@")[0]),
+            username: su.user_metadata?.user_name || (isFounderEmail ? "ovi" : su.email.split("@")[0]),
             email: su.email,
             avatar: su.user_metadata?.avatar_url,
             role: isFounderEmail ? "founder" : (su.user_metadata?.role || "member"),
@@ -159,13 +158,14 @@ export function useAuth() {
 
     // 1. Check if identifier matches Founder account
     const isFounderMatch =
+      cleanId === "ovi" ||
       cleanId === "zamiul" ||
-      cleanId === "zamiul.hasan@gmail.com" ||
-      cleanId === "zamiulhasan2@gmail.com" ||
+      cleanId === "zamiulhasan6@gmail.com" ||
       cleanId === "lov-2026-0001";
 
     if (isFounderMatch) {
-      const founderPass = localStorage.getItem("lov_founder_password") || "founder2026";
+      const founderPass =
+        localStorage.getItem("lov_founder_password") || "LOV@Zamiul";
       if (cleanPass !== founderPass) {
         return {
           success: false,
@@ -176,10 +176,10 @@ export function useAuth() {
       const founder = members[0] || {
         id: 1,
         lovId: "LOV-2026-0001",
-        username: "zamiul",
-        fullName: "Zamiul Hasan",
-        displayName: "Zamiul Hasan",
-        email: "zamiul.hasan@gmail.com",
+        username: "ovi",
+        fullName: "MD Zamiul Hasan",
+        displayName: "MD Zamiul Hasan",
+        email: "zamiulhasan6@gmail.com",
         role: "Founder",
       };
 
@@ -203,8 +203,7 @@ export function useAuth() {
 
         if (!sbError && sbUser) {
           const isFounderEmail =
-            sbUser.email?.toLowerCase() === "zamiul.hasan@gmail.com" ||
-            sbUser.email?.toLowerCase() === "zamiulhasan2@gmail.com";
+            sbUser.email?.toLowerCase() === "zamiulhasan6@gmail.com";
 
           const userRole = isFounderEmail
             ? "founder"
@@ -252,7 +251,8 @@ export function useAuth() {
 
       // STRICT password verification
       if (matchedMember.id === 1 || roleStr === "founder") {
-        const founderPass = localStorage.getItem("lov_founder_password") || "founder2026";
+        const founderPass =
+          localStorage.getItem("lov_founder_password") || "LOV@Zamiul";
         if (cleanPass !== founderPass) {
           return {
             success: false,

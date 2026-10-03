@@ -28,7 +28,7 @@ function AdminSidebar() {
 
   const displayUser = currentUser || {
     id: 1,
-    fullName: "Zamiul Hasan",
+    fullName: "MD Zamiul Hasan",
     avatar: logo,
     role: "Founder",
   };

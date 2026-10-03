@@ -2,9 +2,9 @@ const memberList = [
   {
     id: 1,
     lovId: "LOV-2026-0001",
-    username: "zamiul",
-    fullName: "Zamiul Hasan",
-    email: "zamiul.hasan@gmail.com",
+    username: "ovi",
+    fullName: "MD Zamiul Hasan",
+    email: "zamiulhasan6@gmail.com",
     emailVerified: true,
     role: "Founder",
     department: "Management",

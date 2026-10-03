@@ -65,7 +65,7 @@ export function useProjects() {
       banner: chosenBanner,
       category: projectData.category || "Anime",
       episodes: projectData.episodes || 12,
-      director: projectData.director || "Zamiul Hasan (Founder)",
+      director: projectData.director || "MD Zamiul Hasan (Founder)",
       createdByRole: projectData.createdByRole || "Founder & Admin",
       progress:
         projectData.progress !== undefined ? Number(projectData.progress) : 15,

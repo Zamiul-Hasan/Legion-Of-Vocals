@@ -12,8 +12,10 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Button from "../components/UI/Button";
 import { useProjects } from "../hooks/useProjects";
 import { loadDubVideos, saveDubVideos } from "../hooks/useDubVideos";
+import useAuth from "../hooks/useAuth";
 
 function UploadDub() {
+  const { user } = useAuth();
   const { projects } = useProjects();
   const [form, setForm] = useState({
     projectId: 2,
@@ -45,7 +47,7 @@ function UploadDub() {
         month: "long",
         year: "numeric",
       }),
-      uploadedBy: "Zamiul Hasan",
+      uploadedBy: user?.displayName || user?.fullName || "MD Zamiul Hasan",
       views: 1,
       likes: 1,
       shares: 0,
