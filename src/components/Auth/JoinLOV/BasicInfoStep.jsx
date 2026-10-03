@@ -13,8 +13,10 @@ import {
   RefreshCw,
   Loader2,
   Edit2,
+  Shield,
 } from "lucide-react";
 import { emailService } from "../../../services/emailService";
+import TurnstileWidget from "../../Common/TurnstileWidget";
 import members from "../../../data/members";
 import initialPendingUsers from "../../../data/pendingUsers";
 
@@ -29,6 +31,10 @@ function BasicInfoStep({ formData, setFormData }) {
   const [enteredOtp, setEnteredOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+
+  // Cloudflare Turnstile bot verification state
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [turnstileVerified, setTurnstileVerified] = useState(false);
 
   // Timer countdown for resend button
   useEffect(() => {
@@ -135,6 +141,12 @@ function BasicInfoStep({ formData, setFormData }) {
       return;
     }
 
+    // Require Cloudflare Turnstile human verification
+    if (!turnstileVerified && !turnstileToken) {
+      setEmailError("Please complete the Cloudflare security verification below.");
+      return;
+    }
+
     setSendingOtp(true);
     try {
       const res = await emailService.sendVerificationOtp(validation.cleanEmail);
@@ -180,6 +192,7 @@ function BasicInfoStep({ formData, setFormData }) {
         setFormData({
           ...formData,
           emailVerified: true,
+          turnstileVerified: true,
         });
         setOtpSent(false);
         setEnteredOtp("");
@@ -311,6 +324,36 @@ function BasicInfoStep({ formData, setFormData }) {
               </button>
             )}
           </div>
+
+          {/* Cloudflare Turnstile Human Verification */}
+          {!formData.emailVerified && (
+            <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Shield size={16} className="text-cyan-400 shrink-0" />
+                <span>
+                  {turnstileVerified
+                    ? "Human verified via Cloudflare Turnstile."
+                    : "Security check: Please complete the challenge before sending OTP."}
+                </span>
+              </div>
+              <TurnstileWidget
+                theme="dark"
+                onVerify={(token) => {
+                  setTurnstileToken(token);
+                  setTurnstileVerified(true);
+                  setEmailError("");
+                }}
+                onError={() => {
+                  setTurnstileVerified(false);
+                  setTurnstileToken(null);
+                }}
+                onExpire={() => {
+                  setTurnstileVerified(false);
+                  setTurnstileToken(null);
+                }}
+              />
+            </div>
+          )}
 
           {/* Verification Badge */}
           {formData.emailVerified && (
