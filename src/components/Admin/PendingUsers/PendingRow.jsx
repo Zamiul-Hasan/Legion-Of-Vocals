@@ -22,11 +22,18 @@ function PendingRow({
       <td className="px-6 py-5">
         <div className="flex items-center gap-4">
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500">
-            <User
-              size={20}
-              className="text-white"
-            />
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 border border-cyan-500/40 overflow-hidden shrink-0 shadow-md">
+            {user.avatar || user.profilePicture ? (
+              <img
+                src={user.avatar || user.profilePicture}
+                alt={user.fullName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-cyan-500 text-white font-bold text-lg">
+                {user.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={20} />}
+              </div>
+            )}
           </div>
 
           <div>

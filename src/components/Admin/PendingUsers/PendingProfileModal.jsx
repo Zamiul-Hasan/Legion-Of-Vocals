@@ -50,11 +50,19 @@ function PendingProfileModal({
             </div>
 
             <div className="mt-8 flex gap-6">
-              <img
-                src={user.avatar}
-                alt=""
-                className="h-32 w-32 rounded-full object-cover border-4 border-cyan-500"
-              />
+              <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-cyan-500 bg-slate-800 flex items-center justify-center shrink-0 shadow-xl">
+                {user.avatar || user.profilePicture ? (
+                  <img
+                    src={user.avatar || user.profilePicture}
+                    alt={user.fullName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-white">
+                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
+                  </span>
+                )}
+              </div>
 
               <div className="flex-1">
                 <h2 className="text-3xl font-bold text-white">

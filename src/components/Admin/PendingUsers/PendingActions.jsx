@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MoreVertical,
   Eye,
@@ -10,6 +11,7 @@ import {
 import ApproveUserModal from "./ApproveUserModal";
 import RejectUserModal from "./RejectUserModal";
 import PendingProfileModal from "./PendingProfileModal";
+import { loadMembers, saveMembers } from "../../../hooks/useMembers";
 
 function PendingActions({
   user,
@@ -19,21 +21,42 @@ function PendingActions({
   setMembers,
 }) {
   const [open, setOpen] = useState(false);
-
-  const [approveOpen, setApproveOpen] =
-    useState(false);
-
-  const [rejectOpen, setRejectOpen] =
-    useState(false);
-
-  const [profileOpen, setProfileOpen] =
-    useState(false);
-
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const toggleMenu = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const menuHeight = 170;
+      const menuWidth = 224; // 14rem = 224px
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp = spaceBelow < menuHeight && rect.top > menuHeight;
+
+      const top = openUp ? rect.top - menuHeight - 6 : rect.bottom + 6;
+      const left = Math.max(
+        12,
+        Math.min(window.innerWidth - menuWidth - 12, rect.right - menuWidth)
+      );
+
+      setCoords({ top, left });
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  };
+
   useEffect(() => {
+    if (!open) return;
+
     const handleClickOutside = (e) => {
       if (
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target) &&
         menuRef.current &&
         !menuRef.current.contains(e.target)
       ) {
@@ -41,61 +64,72 @@ function PendingActions({
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
+    const handleDismiss = () => setOpen(false);
 
-    return () =>
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
+  }, [open]);
 
   // Approve User
   const handleApprove = (data) => {
-    setMembers((prev) => [
-      {
-        id: Date.now(),
+    const currentMembers = loadMembers();
+    const newMember = {
+      id: user.id || Date.now(),
+      lovId: user.lovId,
+      fullName: user.fullName,
+      displayName: user.fullName,
+      username: user.username,
+      email: user.email,
+      emailVerified: user.emailVerified !== false,
+      avatar: user.avatar || user.profilePicture || "",
+      role: data.role || "Member",
+      department: data.department || user.appliedRole || "Voice Actor",
+      points: 0,
+      status: "Active",
+      joined: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+      joinedAt: new Date().toISOString().split("T")[0],
+    };
 
-        lovId: user.lovId,
-        fullName: user.fullName,
-        username: user.username,
-        email: user.email,
+    const updatedMembers = [
+      newMember,
+      ...currentMembers.filter((m) => m.lovId !== user.lovId),
+    ];
+    saveMembers(updatedMembers);
+    if (setMembers) setMembers(updatedMembers);
 
-        role: data.role,
-        department: data.department,
-
-        points: 0,
-        status: "Active",
-      },
-
-      ...prev,
-    ]);
-
-    setPendingUsers((prev) =>
-      prev.filter((u) => u.id !== user.id)
-    );
+    setPendingUsers((prev) => {
+      const updated = prev.filter(
+        (u) => u.id !== user.id && u.lovId !== user.lovId
+      );
+      localStorage.setItem("lov_pending_users_v2", JSON.stringify(updated));
+      window.dispatchEvent(new Event("lov-pending-updated"));
+      return updated;
+    });
 
     setApproveOpen(false);
   };
 
   // Reject User
-  // Reject User
-const handleReject = (data) => {
-  console.log("Rejected User:", user.fullName);
-  console.log("Reason:", data.reason);
-  console.log("Admin Note:", data.note);
+  const handleReject = (data) => {
+    setPendingUsers((prev) => {
+      const updated = prev.filter(
+        (u) => u.id !== user.id && u.lovId !== user.lovId
+      );
+      localStorage.setItem("lov_pending_users_v2", JSON.stringify(updated));
+      window.dispatchEvent(new Event("lov-pending-updated"));
+      return updated;
+    });
 
-  // Later backend/API call এখানেই হবে
+    setRejectOpen(false);
+  };
 
-  setPendingUsers((prev) =>
-    prev.filter((u) => u.id !== user.id)
-  );
-
-  setRejectOpen(false);
-};
   const menuItems = [
     {
       label: "View Profile",
@@ -137,24 +171,25 @@ const handleReject = (data) => {
 
   return (
     <>
-      <div
-        ref={menuRef}
-        className="relative inline-block"
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={toggleMenu}
+        className="rounded-xl p-2 text-gray-300 hover:text-cyan-400 hover:bg-slate-800 transition cursor-pointer"
+        aria-label="Pending User Actions"
       >
-        <button
-          onClick={() => setOpen(!open)}
-          className="rounded-xl p-2 hover:bg-slate-700 transition"
-        >
-          <MoreVertical className="text-white" />
-        </button>
+        <MoreVertical size={18} />
+      </button>
 
-        <AnimatePresence>
-          {open && (
+      {open &&
+        createPortal(
+          <AnimatePresence>
             <motion.div
+              ref={menuRef}
               initial={{
                 opacity: 0,
                 scale: 0.95,
-                y: 10,
+                y: -6,
               }}
               animate={{
                 opacity: 1,
@@ -164,12 +199,18 @@ const handleReject = (data) => {
               exit={{
                 opacity: 0,
                 scale: 0.95,
-                y: 10,
+                y: -6,
               }}
               transition={{
                 duration: 0.15,
               }}
-              className="absolute right-0 top-full z-[9999] mt-2 w-56 overflow-hidden rounded-2xl border border-cyan-500/20 bg-slate-900 shadow-2xl"
+              style={{
+                position: "fixed",
+                top: `${coords.top}px`,
+                left: `${coords.left}px`,
+                zIndex: 99999,
+              }}
+              className="w-56 overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/98 shadow-[0_12px_40px_rgba(0,0,0,0.85)] backdrop-blur-xl"
             >
               {menuItems.map((item) => {
                 const Icon = item.icon;
@@ -177,51 +218,44 @@ const handleReject = (data) => {
                 return (
                   <button
                     key={item.label}
-                    onClick={() =>
-                      handleAction(item.label)
-                    }
-                    className="flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-800 transition"
+                    type="button"
+                    onClick={() => handleAction(item.label)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 hover:bg-slate-800/90 text-sm transition cursor-pointer text-left"
                   >
                     <Icon
-                      size={18}
+                      size={17}
                       className={item.color}
                     />
 
-                    <span className="text-white">
+                    <span className="text-gray-100 font-medium">
                       {item.label}
                     </span>
                   </button>
                 );
               })}
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>,
+          document.body
+        )}
 
       <ApproveUserModal
         open={approveOpen}
         user={user}
-        onClose={() =>
-          setApproveOpen(false)
-        }
+        onClose={() => setApproveOpen(false)}
         onApprove={handleApprove}
       />
 
       <RejectUserModal
         open={rejectOpen}
         user={user}
-        onClose={() =>
-          setRejectOpen(false)
-        }
+        onClose={() => setRejectOpen(false)}
         onReject={handleReject}
       />
 
       <PendingProfileModal
         open={profileOpen}
         user={user}
-        onClose={() =>
-          setProfileOpen(false)
-        }
+        onClose={() => setProfileOpen(false)}
       />
     </>
   );
