@@ -11,6 +11,8 @@ import UploadStep from "./UploadStep";
 import ReviewStep from "./ReviewStep";
 import SuccessModal from "./SuccessModal";
 import initialPendingUsers from "../../../data/pendingUsers";
+import members from "../../../data/members";
+import { generateUniqueLovId } from "../../../utils/helpers";
 
 function RegisterForm({
   currentStep,
@@ -20,6 +22,7 @@ function RegisterForm({
   previousStep,
 }) {
   const [successOpen, setSuccessOpen] = useState(false);
+  const [finalLovId, setFinalLovId] = useState("");
   const [stepError, setStepError] = useState("");
 
   const handleNextStep = () => {
@@ -50,9 +53,20 @@ function RegisterForm({
   };
 
   const handleSubmit = () => {
+    // Generate official unique LOV ID only upon successful submission
+    const saved =
+      localStorage.getItem("lov_pending_users_v2") ||
+      localStorage.getItem("pendingUsers");
+    const existing = saved ? JSON.parse(saved) : initialPendingUsers;
+    const existingIds = [
+      ...members.map((m) => m.lovId),
+      ...existing.map((p) => p.lovId),
+    ].filter(Boolean);
+    const assignedLovId = generateUniqueLovId(existingIds);
+
     const newPendingUser = {
       id: Date.now(),
-      lovId: formData.lovId,
+      lovId: assignedLovId,
 
       fullName: formData.fullName,
       username: formData.username,
@@ -91,14 +105,12 @@ function RegisterForm({
       status: "Pending",
     };
 
-    const saved = localStorage.getItem("pendingUsers");
-    const existing = saved ? JSON.parse(saved) : initialPendingUsers;
-
     localStorage.setItem(
-      "pendingUsers",
+      "lov_pending_users_v2",
       JSON.stringify([newPendingUser, ...existing])
     );
 
+    setFinalLovId(assignedLovId);
     setSuccessOpen(true);
   };
 
@@ -182,7 +194,7 @@ function RegisterForm({
 
       <SuccessModal
         open={successOpen}
-        lovId={formData.lovId}
+        lovId={finalLovId}
         email={formData.email}
         onClose={() => setSuccessOpen(false)}
       />

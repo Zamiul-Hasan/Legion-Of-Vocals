@@ -32,8 +32,8 @@ function ReviewStep({ formData }) {
 
           <div className="space-y-2 text-gray-300">
             <p>
-              <strong>Unique LOV ID:</strong>{" "}
-              <span className="text-cyan-400 font-bold">{formData.lovId}</span>
+              <strong>Official Member ID:</strong>{" "}
+              <span className="text-cyan-400 font-semibold italic">Assigned automatically upon successful submission</span>
             </p>
             <p><strong>Name:</strong> {formData.fullName}</p>
             <p><strong>Username:</strong> @{formData.username}</p>

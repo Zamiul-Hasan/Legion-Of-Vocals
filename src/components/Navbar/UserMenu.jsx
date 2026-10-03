@@ -22,6 +22,7 @@ import { useNotifications } from "../../data/notifications";
 import { useMembers } from "../../hooks/useMembers";
 import { useMessenger, openChatWithMember } from "../../hooks/useMessenger";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
+import { authService } from "../../services/authService";
 
 function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -382,8 +383,9 @@ function UserMenu() {
             {/* Logout */}
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setOpen(false);
+                await authService.signOut();
                 navigate("/");
               }}
               className="w-full flex items-center gap-3 px-5 py-3 hover:bg-red-500/20 text-red-400 transition"

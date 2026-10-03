@@ -42,6 +42,25 @@ export const authService = {
     return { user: data?.user, session: data?.session, error };
   },
 
+  // Sign in with Google OAuth
+  async signInWithGoogle() {
+    if (!isSupabaseConfigured()) {
+      return {
+        data: null,
+        error: { message: "Supabase is not configured." },
+      };
+    }
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    return { data, error };
+  },
+
   // Sign out
   async signOut() {
     if (!isSupabaseConfigured()) return { error: null };
