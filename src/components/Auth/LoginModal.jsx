@@ -88,7 +88,12 @@ export default function LoginModal({ isOpen, onClose }) {
     setError("");
 
     if (!identifier.trim() || !password.trim()) {
-      setError("Please enter your Email/Username and Password.");
+      setError("Please enter your registered Email address and Password.");
+      return;
+    }
+
+    if (!identifier.trim().includes("@")) {
+      setError("Login with Username is not allowed. Please enter your registered Email address.");
       return;
     }
 
@@ -143,18 +148,13 @@ export default function LoginModal({ isOpen, onClose }) {
     return `${name.slice(0, 2)}***${name.slice(-1)}@${domain}`;
   };
 
-  // Find account strictly across real registered collections
-  const findAccountByQuery = async (query) => {
-    const clean = (query || "").trim().toLowerCase();
-    if (!clean) return null;
+  // Find account strictly by registered Email address only (Username not allowed)
+  const findAccountByEmail = async (emailQuery) => {
+    const clean = (emailQuery || "").trim().toLowerCase();
+    if (!clean || !clean.includes("@")) return null;
 
-    // 1. Check founder account
-    const isFounder =
-      clean === "ovi" ||
-      clean === "zamiul" ||
-      clean === "zamiulhasan6@gmail.com" ||
-      clean === "lov-2026-0001";
-    if (isFounder) {
+    // 1. Check founder account strictly by email
+    if (clean === "zamiulhasan6@gmail.com") {
       return {
         type: "founder",
         email: "zamiulhasan6@gmail.com",
@@ -163,15 +163,12 @@ export default function LoginModal({ isOpen, onClose }) {
       };
     }
 
-    // 2. Check registered members in lov_members_v2
+    // 2. Check registered members in lov_members_v2 strictly by email
     const savedMembers = JSON.parse(
       localStorage.getItem("lov_members_v2") || "[]"
     );
     const m = savedMembers.find(
-      (u) =>
-        (u.email && u.email.toLowerCase() === clean) ||
-        (u.username && u.username.toLowerCase() === clean) ||
-        (u.lovId && u.lovId.toLowerCase() === clean)
+      (u) => u.email && u.email.toLowerCase() === clean
     );
     if (m) {
       return {
@@ -183,17 +180,14 @@ export default function LoginModal({ isOpen, onClose }) {
       };
     }
 
-    // 3. Check pending applicants in lov_pending_users_v2
+    // 3. Check pending applicants in lov_pending_users_v2 strictly by email
     const savedPending = JSON.parse(
       localStorage.getItem("lov_pending_users_v2") ||
         localStorage.getItem("pendingUsers") ||
         "[]"
     );
     const p = savedPending.find(
-      (u) =>
-        (u.email && u.email.toLowerCase() === clean) ||
-        (u.username && u.username.toLowerCase() === clean) ||
-        (u.lovId && u.lovId.toLowerCase() === clean)
+      (u) => u.email && u.email.toLowerCase() === clean
     );
     if (p) {
       return {
@@ -205,13 +199,13 @@ export default function LoginModal({ isOpen, onClose }) {
       };
     }
 
-    // 4. If Supabase is active, check profiles table
+    // 4. If Supabase is active, check profiles table strictly by email
     if (isSupabaseConfigured()) {
       try {
         const { data: profile } = await supabase
           .from("profiles")
           .select("id, email, username, full_name, lov_id")
-          .or(`email.ilike.${clean},username.ilike.${clean}`)
+          .ilike("email", clean)
           .maybeSingle();
 
         if (profile && profile.email) {
@@ -228,30 +222,37 @@ export default function LoginModal({ isOpen, onClose }) {
       }
     }
 
-    // STRICT: Absolutely NO fallback. If not registered, return null!
+    // STRICT: Absolutely NO fallback.
     return null;
   };
 
-  // Step 1: Send verification OTP for password reset
+  // Step 1: Send verification OTP for password reset (Email only)
   const handleSendResetOtp = async (e) => {
     e?.preventDefault();
     setResetError("");
     setResetInfo("");
 
-    const cleanInput = resetIdentifier.trim();
+    const cleanInput = resetIdentifier.trim().toLowerCase();
     if (!cleanInput) {
-      setResetError("Please enter your registered Email, Username, or LOV ID.");
+      setResetError("Please enter your registered Email address.");
+      return;
+    }
+
+    if (!cleanInput.includes("@")) {
+      setResetError(
+        "Password reset is only available via Email. Username is not accepted."
+      );
       return;
     }
 
     setResetLoading(true);
 
     try {
-      const target = await findAccountByQuery(cleanInput);
+      const target = await findAccountByEmail(cleanInput);
       if (!target || !target.email) {
         setResetLoading(false);
         setResetError(
-          "No registered account found matching this Email, Username, or LOV ID. Please register first via Join LOV."
+          "No registered account found matching this Email address. Please register first via Join LOV."
         );
         return;
       }
@@ -363,7 +364,7 @@ export default function LoginModal({ isOpen, onClose }) {
     setNewPassword("");
     setConfirmPassword("");
     if (resetTarget) {
-      setIdentifier(resetTarget.username || resetTarget.email);
+      setIdentifier(resetTarget.email);
     }
   };
 
@@ -404,7 +405,7 @@ export default function LoginModal({ isOpen, onClose }) {
                 </h2>
                 <p className="text-gray-400 text-xs mt-1 max-w-xs mx-auto">
                   {forgotStep === "request" &&
-                    "Enter your registered Email, Username, or LOV ID to receive a verification code."}
+                    "Enter your registered Email address to receive a verification code."}
                   {forgotStep === "verify" &&
                     "Enter the 6-digit code sent to your email and set your new password."}
                   {forgotStep === "success" &&
@@ -435,10 +436,10 @@ export default function LoginModal({ isOpen, onClose }) {
                       className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400"
                     />
                     <input
-                      type="text"
+                      type="email"
                       value={resetIdentifier}
                       onChange={(e) => setResetIdentifier(e.target.value)}
-                      placeholder="Email, Username, or LOV ID"
+                      placeholder="Registered Email Address"
                       autoFocus
                       className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 pl-11 pr-4 py-3.5 text-white text-sm outline-none transition focus:border-cyan-400 focus:bg-slate-800"
                     />
@@ -625,7 +626,7 @@ export default function LoginModal({ isOpen, onClose }) {
                   Sign In to LOV
                 </h2>
                 <p className="text-gray-400 text-xs mt-1">
-                  Enter your credentials to access your Legion of Vocals portal.
+                  Enter your registered email and password to access your Legion of Vocals portal.
                 </p>
               </div>
 
@@ -639,17 +640,18 @@ export default function LoginModal({ isOpen, onClose }) {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email / Username */}
+                {/* Registered Email */}
                 <div className="relative">
                   <Mail
                     size={18}
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400"
                   />
                   <input
-                    type="text"
+                    type="email"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Email or Username"
+                    placeholder="Registered Email Address"
+                    autoComplete="email"
                     className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 pl-11 pr-4 py-3.5 text-white text-sm outline-none transition focus:border-cyan-400 focus:bg-slate-800"
                   />
                 </div>

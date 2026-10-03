@@ -146,22 +146,26 @@ export function useAuth() {
   }, []);
 
   /**
-   * Log in using Email/Username and Password
+   * Log in using registered Email and Password
    */
   const login = async ({ identifier, password }) => {
     const cleanId = (identifier || "").trim().toLowerCase();
     const cleanPass = (password || "").trim();
 
     if (!cleanId || !cleanPass) {
-      return { success: false, message: "Please enter your Email/Username and Password." };
+      return { success: false, message: "Please enter your Email address and Password." };
     }
 
-    // 1. Check if identifier matches Founder account
-    const isFounderMatch =
-      cleanId === "ovi" ||
-      cleanId === "zamiul" ||
-      cleanId === "zamiulhasan6@gmail.com" ||
-      cleanId === "lov-2026-0001";
+    // STRICT: Only Email login is allowed. Username login is disabled.
+    if (!cleanId.includes("@")) {
+      return {
+        success: false,
+        message: "Sign in with Username is disabled. Please use your registered Email address.",
+      };
+    }
+
+    // 1. Check if identifier matches Founder account (strictly by email)
+    const isFounderMatch = cleanId === "zamiulhasan6@gmail.com";
 
     if (isFounderMatch) {
       const founderPass =
@@ -236,14 +240,11 @@ export function useAuth() {
       }
     }
 
-    // 3. Check registered members in localStorage (lov_members_v2)
+    // 3. Check registered members in localStorage (lov_members_v2) - STRICTLY by Email
     const savedMembers = JSON.parse(localStorage.getItem("lov_members_v2") || "[]");
     const allMembers = [...members, ...savedMembers];
     const matchedMember = allMembers.find(
-      (m) =>
-        (m.username && m.username.toLowerCase() === cleanId) ||
-        (m.email && m.email.toLowerCase() === cleanId) ||
-        (m.lovId && m.lovId.toLowerCase() === cleanId)
+      (m) => m.email && m.email.toLowerCase() === cleanId
     );
 
     if (matchedMember) {
@@ -294,17 +295,14 @@ export function useAuth() {
       return { success: true, user: loggedInUser };
     }
 
-    // 4. Check recently registered pending users (lov_pending_users_v2)
+    // 4. Check recently registered pending users (lov_pending_users_v2) - STRICTLY by Email
     const savedPending = JSON.parse(
       localStorage.getItem("lov_pending_users_v2") ||
       localStorage.getItem("pendingUsers") ||
       "[]"
     );
     const matchedPending = savedPending.find(
-      (p) =>
-        (p.username && p.username.toLowerCase() === cleanId) ||
-        (p.email && p.email.toLowerCase() === cleanId) ||
-        (p.lovId && p.lovId.toLowerCase() === cleanId)
+      (p) => p.email && p.email.toLowerCase() === cleanId
     );
 
     if (matchedPending) {
@@ -345,7 +343,7 @@ export function useAuth() {
 
     return {
       success: false,
-      message: "No account found matching this Email, Username, or LOV ID. Please register first via Join LOV.",
+      message: "No registered account found matching this Email address. Please register first via Join LOV.",
     };
   };
 
