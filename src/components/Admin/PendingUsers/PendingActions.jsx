@@ -89,6 +89,7 @@ function PendingActions({
       email: user.email,
       emailVerified: user.emailVerified !== false,
       avatar: user.avatar || user.profilePicture || "",
+      password: user.password,
       role: data.role || "Member",
       department: data.department || user.appliedRole || "Voice Actor",
       points: 0,

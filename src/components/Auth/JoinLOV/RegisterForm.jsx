@@ -79,6 +79,7 @@ function RegisterForm({
       username: formData.username,
       email: formData.email,
       emailVerified: Boolean(formData.emailVerified),
+      password: formData.password,
 
       phone: formData.phone,
       country: formData.country,

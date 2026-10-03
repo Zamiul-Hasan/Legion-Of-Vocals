@@ -157,42 +157,7 @@ export function useAuth() {
       return { success: false, message: "Please enter your Email/Username and Password." };
     }
 
-    // 1. Check if Supabase Auth has this user
-    if (isSupabaseConfigured() && cleanId.includes("@")) {
-      try {
-        const { user: sbUser, error: sbError } = await authService.signIn({
-          email: cleanId,
-          password: cleanPass,
-        });
-
-        if (!sbError && sbUser) {
-          const isFounderEmail =
-            sbUser.email?.toLowerCase() === "zamiul.hasan@gmail.com" ||
-            sbUser.email?.toLowerCase() === "zamiulhasan2@gmail.com";
-
-          const loggedInUser = {
-            id: sbUser.id,
-            lovId:
-              sbUser.user_metadata?.lov_id ||
-              (isFounderEmail ? "LOV-2026-0001" : `LOV-${sbUser.id.slice(0, 6).toUpperCase()}`),
-            fullName: sbUser.user_metadata?.full_name || sbUser.email.split("@")[0],
-            displayName: sbUser.user_metadata?.display_name || sbUser.email.split("@")[0],
-            username: sbUser.user_metadata?.user_name || sbUser.email.split("@")[0],
-            email: sbUser.email,
-            avatar: sbUser.user_metadata?.avatar_url,
-            role: isFounderEmail ? "founder" : (sbUser.user_metadata?.role || "member"),
-            roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
-          };
-          setUser(loggedInUser);
-          saveCurrentUser(loggedInUser);
-          return { success: true, user: loggedInUser };
-        }
-      } catch {
-        // fall through to local credentials
-      }
-    }
-
-    // 2. Check Founder credentials
+    // 1. Check if identifier matches Founder account
     const isFounderMatch =
       cleanId === "zamiul" ||
       cleanId === "zamiul.hasan@gmail.com" ||
@@ -200,6 +165,14 @@ export function useAuth() {
       cleanId === "lov-2026-0001";
 
     if (isFounderMatch) {
+      const founderPass = localStorage.getItem("lov_founder_password") || "founder2026";
+      if (cleanPass !== founderPass) {
+        return {
+          success: false,
+          message: "Incorrect password for Founder account. Please try again.",
+        };
+      }
+
       const founder = members[0] || {
         id: 1,
         lovId: "LOV-2026-0001",
@@ -220,20 +193,95 @@ export function useAuth() {
       return { success: true, user: loggedInUser };
     }
 
-    // 3. Check registered members in localStorage (lov_members_v2) or pending approved
+    // 2. Check live Supabase Auth if configured (only for regular accounts)
+    if (isSupabaseConfigured() && cleanId.includes("@")) {
+      try {
+        const { user: sbUser, error: sbError } = await authService.signIn({
+          email: cleanId,
+          password: cleanPass,
+        });
+
+        if (!sbError && sbUser) {
+          const isFounderEmail =
+            sbUser.email?.toLowerCase() === "zamiul.hasan@gmail.com" ||
+            sbUser.email?.toLowerCase() === "zamiulhasan2@gmail.com";
+
+          const userRole = isFounderEmail
+            ? "founder"
+            : (sbUser.user_metadata?.role || "member").toLowerCase();
+
+          const loggedInUser = {
+            id: sbUser.id,
+            lovId:
+              sbUser.user_metadata?.lov_id ||
+              (isFounderEmail ? "LOV-2026-0001" : `LOV-${sbUser.id.slice(0, 6).toUpperCase()}`),
+            fullName: sbUser.user_metadata?.full_name || sbUser.email.split("@")[0],
+            displayName: sbUser.user_metadata?.display_name || sbUser.email.split("@")[0],
+            username: sbUser.user_metadata?.user_name || sbUser.email.split("@")[0],
+            email: sbUser.email,
+            avatar: sbUser.user_metadata?.avatar_url,
+            role: userRole,
+            roleLabel:
+              userRole === "founder"
+                ? "Founder & Studio Lead"
+                : userRole === "admin"
+                ? "Studio Admin"
+                : "Studio Member",
+          };
+          setUser(loggedInUser);
+          saveCurrentUser(loggedInUser);
+          return { success: true, user: loggedInUser };
+        }
+      } catch {
+        // proceed to local checks
+      }
+    }
+
+    // 3. Check registered members in localStorage (lov_members_v2)
     const savedMembers = JSON.parse(localStorage.getItem("lov_members_v2") || "[]");
-    const matchedMember = [...members, ...savedMembers].find(
+    const allMembers = [...members, ...savedMembers];
+    const matchedMember = allMembers.find(
       (m) =>
-        m.username?.toLowerCase() === cleanId ||
-        m.email?.toLowerCase() === cleanId ||
-        m.lovId?.toLowerCase() === cleanId
+        (m.username && m.username.toLowerCase() === cleanId) ||
+        (m.email && m.email.toLowerCase() === cleanId) ||
+        (m.lovId && m.lovId.toLowerCase() === cleanId)
     );
 
     if (matchedMember) {
       const roleStr = (matchedMember.role || "member").toLowerCase();
+
+      // STRICT password verification
+      if (matchedMember.id === 1 || roleStr === "founder") {
+        const founderPass = localStorage.getItem("lov_founder_password") || "founder2026";
+        if (cleanPass !== founderPass) {
+          return {
+            success: false,
+            message: "Incorrect password for Founder account. Please try again.",
+          };
+        }
+      } else {
+        const memberPass = matchedMember.password || matchedMember.pass;
+        if (memberPass) {
+          if (cleanPass !== memberPass) {
+            return {
+              success: false,
+              message: "Incorrect password for this member account. Please try again.",
+            };
+          }
+        } else {
+          matchedMember.password = cleanPass;
+          const updated = savedMembers.map((m) =>
+            m.id === matchedMember.id ? { ...m, password: cleanPass } : m
+          );
+          localStorage.setItem("lov_members_v2", JSON.stringify(updated));
+        }
+      }
+
+      const isAdminOrFounder = roleStr === "admin" || roleStr === "founder";
+
       const loggedInUser = {
         ...matchedMember,
-        role: roleStr,
+        role: isAdminOrFounder ? roleStr : "member",
         roleLabel:
           roleStr === "founder"
             ? "Founder & Studio Lead"
@@ -254,12 +302,30 @@ export function useAuth() {
     );
     const matchedPending = savedPending.find(
       (p) =>
-        p.username?.toLowerCase() === cleanId ||
-        p.email?.toLowerCase() === cleanId ||
-        p.lovId?.toLowerCase() === cleanId
+        (p.username && p.username.toLowerCase() === cleanId) ||
+        (p.email && p.email.toLowerCase() === cleanId) ||
+        (p.lovId && p.lovId.toLowerCase() === cleanId)
     );
 
     if (matchedPending) {
+      // STRICT password verification for pending users
+      if (matchedPending.password) {
+        if (cleanPass !== matchedPending.password) {
+          return {
+            success: false,
+            message: "Incorrect password. Please enter the password you chose during registration.",
+          };
+        }
+      } else {
+        // If password was missing from legacy registration, save it on first valid login
+        matchedPending.password = cleanPass;
+        const updated = savedPending.map((p) =>
+          p.id === matchedPending.id ? { ...p, password: cleanPass } : p
+        );
+        localStorage.setItem("lov_pending_users_v2", JSON.stringify(updated));
+      }
+
+      // Pending users are strictly "member", NEVER "admin" or "founder"
       const loggedInUser = {
         id: matchedPending.id,
         lovId: matchedPending.lovId,
@@ -268,7 +334,7 @@ export function useAuth() {
         username: matchedPending.username,
         email: matchedPending.email,
         role: "member",
-        roleLabel: "Applicant / Member",
+        roleLabel: `${matchedPending.appliedRole || "Voice Actor"} (Applicant)`,
         avatar: matchedPending.avatar || matchedPending.profilePicture,
         status: matchedPending.status || "Pending",
       };
@@ -279,7 +345,7 @@ export function useAuth() {
 
     return {
       success: false,
-      message: "No account found matching this Email or Username. Please register first via Join LOV.",
+      message: "No account found matching this Email, Username, or LOV ID. Please register first via Join LOV.",
     };
   };
 
