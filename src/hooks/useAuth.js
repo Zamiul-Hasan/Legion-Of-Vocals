@@ -12,6 +12,24 @@ export function loadCurrentUser() {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && (parsed.role || parsed.email || parsed.username)) {
+        try {
+          const overrides = JSON.parse(localStorage.getItem("lov_avatar_overrides") || "{}");
+          const keys = [
+            parsed.id != null ? String(parsed.id).toLowerCase() : null,
+            parsed.username ? parsed.username.toLowerCase() : null,
+            parsed.lovId ? parsed.lovId.toLowerCase() : null,
+            parsed.email ? parsed.email.toLowerCase() : null,
+          ].filter(Boolean);
+
+          for (const k of keys) {
+            if (overrides[k]) {
+              parsed.avatar = overrides[k];
+              break;
+            }
+          }
+        } catch {
+          // ignore
+        }
         return parsed;
       }
     }
@@ -21,10 +39,33 @@ export function loadCurrentUser() {
   return null; // By default, unauthenticated guest
 }
 
+function attachAvatarOverride(u) {
+  if (!u) return u;
+  try {
+    const overrides = JSON.parse(localStorage.getItem("lov_avatar_overrides") || "{}");
+    const keys = [
+      u.id != null ? String(u.id).toLowerCase() : null,
+      u.username ? u.username.toLowerCase() : null,
+      u.lovId ? u.lovId.toLowerCase() : null,
+      u.email ? u.email.toLowerCase() : null,
+    ].filter(Boolean);
+
+    for (const k of keys) {
+      if (overrides[k]) {
+        return { ...u, avatar: overrides[k] };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return u;
+}
+
 export function saveCurrentUser(userData) {
   try {
     if (userData) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+      const withAvatar = attachAvatarOverride(userData);
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(withAvatar));
     } else {
       localStorage.removeItem(AUTH_STORAGE_KEY);
     }

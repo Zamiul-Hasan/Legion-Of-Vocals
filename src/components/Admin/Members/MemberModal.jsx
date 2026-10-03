@@ -48,8 +48,16 @@ function MemberModal({ open, onClose, member }) {
             {/* Body */}
             <div className="p-8 space-y-6">
               <div className="flex items-center gap-6">
-                <div className="h-24 w-24 rounded-full bg-cyan-500 flex items-center justify-center text-3xl font-bold text-white shrink-0">
-                  {member.fullName?.charAt(0)}
+                <div className="h-24 w-24 rounded-full border-2 border-cyan-400 overflow-hidden bg-slate-800 flex items-center justify-center text-3xl font-bold text-white shrink-0 shadow-lg">
+                  {member.avatar ? (
+                    <img
+                      src={member.avatar}
+                      alt={member.fullName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    member.fullName?.charAt(0)
+                  )}
                 </div>
 
                 <div>

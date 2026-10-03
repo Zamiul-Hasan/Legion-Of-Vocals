@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Upload,
@@ -12,6 +13,7 @@ import {
   RefreshCw,
   Globe,
 } from "lucide-react";
+import { compressImage } from "../../utils/imageCompressor";
 import defaultLogo from "../../assets/images/logos/logo.png";
 import blueLockBanner from "../../assets/images/temp/blue-lock-banner.jpg";
 import demonSlayerBanner from "../../assets/images/temp/Demon-Slayer-banner.jpg";
@@ -67,19 +69,27 @@ export default function ProfilePictureModal({
 
   if (!isOpen || !member) return null;
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setSourceUrl(reader.result);
-        setZoom(1.1);
-        setRotation(0);
-        setOffset({ x: 0, y: 0 });
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 640, 0.9);
+      setSourceUrl(compressed);
+      setZoom(1.1);
+      setRotation(0);
+      setOffset({ x: 0, y: 0 });
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setSourceUrl(reader.result);
+          setZoom(1.1);
+          setRotation(0);
+          setOffset({ x: 0, y: 0 });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handlePointerDown = (e) => {
@@ -145,15 +155,16 @@ export default function ProfilePictureModal({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const finalAvatar = exportCroppedAvatar();
-    onSave(finalAvatar, { frameBadge, caption: caption.trim() });
+    const compressed = await compressImage(finalAvatar, 320, 0.85);
+    onSave(compressed, { frameBadge, caption: caption.trim() });
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
       onMouseMove={handlePointerMove}
       onMouseUp={handlePointerUp}
       onTouchMove={handlePointerMove}
@@ -437,6 +448,7 @@ export default function ProfilePictureModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

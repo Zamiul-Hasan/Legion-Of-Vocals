@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, User, CheckCircle2 } from "lucide-react";
+import { saveMembers } from "../../../hooks/useMembers";
 
 import MemberActions from "./MemberActions";
 import MemberModal from "./MemberModal";
@@ -24,20 +25,24 @@ function MemberRow({
 
   // Update Member
   const handleUpdateMember = (updatedMember) => {
-    setMembers((prev) =>
-      prev.map((m) =>
+    setMembers((prev) => {
+      const updated = prev.map((m) =>
         m.id === updatedMember.id
           ? updatedMember
           : m
-      )
-    );
+      );
+      saveMembers(updated);
+      return updated;
+    });
   };
 
   // Delete Member
   const handleDeleteMember = (id) => {
-    setMembers((prev) =>
-      prev.filter((m) => m.id !== id)
-    );
+    setMembers((prev) => {
+      const updated = prev.filter((m) => m.id !== id);
+      saveMembers(updated);
+      return updated;
+    });
   };
 
   return (
@@ -51,8 +56,18 @@ function MemberRow({
         {/* Member */}
         <td className="px-6 py-5">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500 shrink-0">
-              <User size={20} className="text-white" />
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 border border-cyan-500/40 overflow-hidden shrink-0 shadow-md">
+              {member.avatar ? (
+                <img
+                  src={member.avatar}
+                  alt={member.fullName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-cyan-500 text-white font-bold text-lg">
+                  {member.fullName ? member.fullName.charAt(0).toUpperCase() : <User size={20} />}
+                </div>
+              )}
             </div>
 
             <div>

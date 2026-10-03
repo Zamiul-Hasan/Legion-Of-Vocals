@@ -54,6 +54,7 @@ function AddMemberModal({
       username: selectedUser.username,
       email: selectedUser.email,
       emailVerified: selectedUser.emailVerified !== false,
+      avatar: selectedUser.avatar || selectedUser.profilePicture || "",
 
       role: role,
       department: selectedUser.appliedRole || "Voice Actor",

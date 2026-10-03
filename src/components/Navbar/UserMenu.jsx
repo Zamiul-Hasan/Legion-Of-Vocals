@@ -68,8 +68,8 @@ function UserMenu() {
       ? "Admin"
       : authUser.roleLabel || "Member",
     avatar:
-      authUser.avatar ||
       currentUser?.avatar ||
+      authUser.avatar ||
       "https://i.pravatar.cc/150?img=33",
   };
 
@@ -403,7 +403,11 @@ function UserMenu() {
           onClose={() => setAvatarModalOpen(false)}
           member={currentUser}
           onSave={(newAvatar, options) =>
-            updateMemberAvatar(currentUser.id, newAvatar, options)
+            updateMemberAvatar(
+              currentUser.id || authUser?.id || authUser?.username,
+              newAvatar,
+              options
+            )
           }
         />
       )}

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Settings as SettingsIcon,
   User,
@@ -24,12 +24,12 @@ function Settings() {
   const coverInputRef = useRef(null);
 
   const [profile, setProfile] = useState({
-    fullName: currentUser.fullName,
-    displayName: currentUser.displayName,
-    username: currentUser.username,
-    location: currentUser.location,
-    department: currentUser.department,
-    bio: currentUser.bio,
+    fullName: currentUser?.fullName || "",
+    displayName: currentUser?.displayName || "",
+    username: currentUser?.username || "",
+    location: currentUser?.location || "",
+    department: currentUser?.department || "",
+    bio: currentUser?.bio || "",
     microphone: "Audio-Technica AT2020 USB+",
     daw: "Adobe Audition / Reaper",
     discord: "zamiul_lov",
@@ -39,9 +39,24 @@ function Settings() {
     discordAlerts: true,
   });
 
+  useEffect(() => {
+    if (currentUser) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: currentUser.fullName || prev.fullName,
+        displayName: currentUser.displayName || prev.displayName,
+        username: currentUser.username || prev.username,
+        location: currentUser.location || prev.location,
+        department: currentUser.department || prev.department,
+        bio: currentUser.bio || prev.bio,
+      }));
+    }
+  }, [currentUser]);
+
   const handleSave = (e) => {
     e.preventDefault();
-    updateMemberProfile(currentUser.id, {
+    if (!currentUser) return;
+    updateMemberProfile(currentUser.id || currentUser.username, {
       fullName: profile.fullName,
       displayName: profile.displayName,
       username: profile.username,
@@ -423,16 +438,22 @@ function Settings() {
           </div>
         </form>
 
-        <ProfilePictureModal
-          isOpen={isAvatarModalOpen}
-          onClose={() => setIsAvatarModalOpen(false)}
-          member={currentUser}
-          onSave={(newAvatar, options) => {
-            updateMemberAvatar(currentUser.id, newAvatar, options);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3500);
-          }}
-        />
+        {currentUser && (
+          <ProfilePictureModal
+            isOpen={isAvatarModalOpen}
+            onClose={() => setIsAvatarModalOpen(false)}
+            member={currentUser}
+            onSave={(newAvatar, options) => {
+              updateMemberAvatar(
+                currentUser.id || currentUser.username,
+                newAvatar,
+                options
+              );
+              setSaved(true);
+              setTimeout(() => setSaved(false), 3500);
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
