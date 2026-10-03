@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import defaultMembers from "../data/members";
 import { loadNotifications, saveNotifications } from "../data/notifications";
+import { memberService } from "../services/memberService";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 const MEMBERS_STORAGE_KEY = "lov_members_data";
 const MEMBERS_EVENT = "lov-members-updated";
@@ -54,6 +56,16 @@ export function useMembers() {
   const [members, setMembers] = useState(() => loadMembers());
 
   useEffect(() => {
+    // If Supabase is configured, fetch live profiles from PostgreSQL
+    if (isSupabaseConfigured()) {
+      memberService.getMembers().then((dbMembers) => {
+        if (dbMembers && dbMembers.length > 0) {
+          setMembers(dbMembers);
+          saveMembers(dbMembers);
+        }
+      });
+    }
+
     const handleSync = () => {
       setMembers(loadMembers());
     };
@@ -110,6 +122,11 @@ export function useMembers() {
 
     setMembers(updated);
     saveMembers(updated);
+
+    // Sync with Supabase if configured
+    if (isSupabaseConfigured() && updatedMember?.id) {
+      memberService.updateAvatar(updatedMember.id, avatarDataUrl);
+    }
 
     if (updatedMember) {
       const notifs = loadNotifications();
