@@ -16,6 +16,7 @@ function RegisterStepper() {
     fullName: "",
     username: "",
     email: "",
+    emailVerified: false,
     password: "",
     confirmPassword: "",
 

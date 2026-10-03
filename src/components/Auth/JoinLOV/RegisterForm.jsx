@@ -33,9 +33,12 @@ function RegisterForm({
         setStepError("Please enter your Full Name and Username.");
         return;
       }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!formData.email || !emailRegex.test(formData.email.trim())) {
-        setStepError("Please enter a valid email address (e.g. name@gmail.com).");
+      if (!formData.email || !formData.email.trim().endsWith("@gmail.com")) {
+        setStepError("Please enter a valid Google Gmail address (e.g. name@gmail.com).");
+        return;
+      }
+      if (!formData.emailVerified) {
+        setStepError("Please verify your Gmail address with the 6-digit OTP code before proceeding.");
         return;
       }
       if (!formData.password || formData.password.length < 6) {
@@ -52,6 +55,11 @@ function RegisterForm({
   };
 
   const handleSubmit = () => {
+    if (!formData.emailVerified) {
+      setStepError("Registration cannot be submitted without a verified Gmail address.");
+      return;
+    }
+
     // Generate official unique LOV ID only upon successful submission
     const saved =
       localStorage.getItem("lov_pending_users_v2") ||

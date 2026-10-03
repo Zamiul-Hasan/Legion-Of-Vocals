@@ -37,7 +37,18 @@ function ReviewStep({ formData }) {
             </p>
             <p><strong>Name:</strong> {formData.fullName}</p>
             <p><strong>Username:</strong> @{formData.username}</p>
-            <p><strong>Email:</strong> {formData.email}</p>
+            <p>
+              <strong>Email:</strong> {formData.email}{" "}
+              {formData.emailVerified ? (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                  ✓ Verified Gmail
+                </span>
+              ) : (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                  Unverified
+                </span>
+              )}
+            </p>
           </div>
 
         </div>

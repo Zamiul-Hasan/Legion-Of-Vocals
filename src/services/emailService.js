@@ -1,6 +1,6 @@
 // ==============================================================================
 // LEGION OF VOCALS — EMAIL VERIFICATION SERVICE
-// Dual dispatch: Supabase built-in Auth OTP & Vercel Resend fallback
+// Dual dispatch: Vercel Resend /api/send-otp & Supabase Auth OTP
 // ==============================================================================
 
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
@@ -11,19 +11,60 @@ const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 export const emailService = {
   /**
    * Dispatches a 6-digit OTP to the recipient's Gmail inbox.
-   * Tries Supabase built-in transactional email first, falls back to Vercel /api/send-otp.
+   * Prioritizes Vercel /api/send-otp (Resend, 100% inbox delivery)
+   * Falls back to Supabase built-in Auth OTP.
    */
   async sendVerificationOtp(email) {
     const cleanEmail = (email || "").trim().toLowerCase();
     if (!cleanEmail) {
-      return { success: false, reason: "Please provide a valid email address." };
+      return { success: false, reason: "Please provide a valid Gmail address." };
     }
 
-    // 1. Try Supabase Auth built-in OTP email dispatch
+    // 1. First try Vercel /api/send-otp (powered by Resend API if RESEND_API_KEY configured)
+    const localOtp = String(Math.floor(100000 + Math.random() * 900000));
+    try {
+      const response = await fetch("/api/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          otp: localOtp,
+          appName: "Legion of Vocals",
+        }),
+      });
+
+      if (response.ok) {
+        const resData = await response.json().catch(() => ({}));
+        if (resData.success) {
+          sessionStorage.setItem(`lov_otp_provider_${cleanEmail}`, "resend");
+          sessionStorage.setItem(
+            `${OTP_STORAGE_PREFIX}${cleanEmail}`,
+            JSON.stringify({
+              code: localOtp,
+              email: cleanEmail,
+              createdAt: Date.now(),
+              expiresAt: Date.now() + OTP_EXPIRY_MS,
+            })
+          );
+          return {
+            success: true,
+            provider: "resend",
+            message: `Verification code sent to ${cleanEmail}. Check your inbox!`,
+          };
+        }
+      }
+    } catch {
+      // API call failed or running in local environment without API endpoint
+    }
+
+    // 2. Fall back to Supabase built-in OTP
     if (isSupabaseConfigured()) {
       try {
         const { error: sbError } = await supabase.auth.signInWithOtp({
           email: cleanEmail,
+          options: {
+            shouldCreateUser: true,
+          },
         });
 
         if (!sbError) {
@@ -31,56 +72,24 @@ export const emailService = {
           return {
             success: true,
             provider: "supabase",
-            message: `Verification code sent to ${cleanEmail} via Supabase Mail.`,
+            message: `Verification code sent to ${cleanEmail}. Please check your Inbox and Spam folder.`,
           };
         } else {
-          console.warn("[LOV Auth] Supabase OTP dispatch issue:", sbError.message);
+          console.warn("[LOV Auth] Supabase OTP error:", sbError.message);
+          return {
+            success: false,
+            reason: `Supabase Mailer Error: ${sbError.message}. (Free Supabase projects have a 3 email/hr limit. Please check your Spam folder or configure RESEND_API_KEY on Vercel).`,
+          };
         }
       } catch (err) {
-        console.warn("[LOV Auth] Supabase OTP error:", err);
+        console.warn("[LOV Auth] Supabase OTP exception:", err);
       }
     }
 
-    // 2. Generate local 6-digit code and dispatch via Vercel /api/send-otp (Resend)
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    try {
-      const response = await fetch("/api/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: cleanEmail,
-          otp: code,
-          appName: "Legion of Vocals",
-        }),
-      });
-
-      const resData = await response.json().catch(() => ({}));
-      if (response.ok && resData.success) {
-        sessionStorage.setItem(`lov_otp_provider_${cleanEmail}`, "session");
-        sessionStorage.setItem(
-          `${OTP_STORAGE_PREFIX}${cleanEmail}`,
-          JSON.stringify({
-            code,
-            email: cleanEmail,
-            createdAt: Date.now(),
-            expiresAt: Date.now() + OTP_EXPIRY_MS,
-          })
-        );
-        return {
-          success: true,
-          provider: "resend",
-          message: `Verification code sent to ${cleanEmail} via Resend.`,
-        };
-      }
-    } catch {
-      // API call failed
-    }
-
-    // 3. If neither email provider is operational:
     return {
       success: false,
       reason:
-        "Email dispatch is not configured yet. To receive OTP in Gmail, run the SQL fix in your Supabase SQL Editor (to use Supabase's free built-in mailer) or add RESEND_API_KEY to Vercel.",
+        "Unable to dispatch email. Please ensure your Supabase email settings or Vercel RESEND_API_KEY is configured.",
     };
   },
 
@@ -112,13 +121,16 @@ export const emailService = {
         if (!error && data?.user) {
           sessionStorage.removeItem(`lov_otp_provider_${cleanEmail}`);
           return { success: true };
+        } else if (error) {
+          // If Supabase returned invalid token, still try local check in case it was a session code
+          console.warn("[LOV Auth] Supabase verifyOtp error:", error.message);
         }
-      } catch {
-        // Fall back to local check if Supabase verify had an error
+      } catch (e) {
+        console.warn("[LOV Auth] Supabase verifyOtp exception:", e);
       }
     }
 
-    // Check local session storage fallback
+    // Check local session storage (Resend / Session code)
     try {
       const raw = sessionStorage.getItem(`${OTP_STORAGE_PREFIX}${cleanEmail}`);
       if (raw) {
