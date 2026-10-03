@@ -259,7 +259,9 @@ export default function LoginModal({ isOpen, onClose }) {
 
       setResetTarget(target);
 
-      const res = await emailService.sendVerificationOtp(target.email);
+      const res = await emailService.sendVerificationOtp(target.email, {
+        redirectTo: "/dashboard",
+      });
       setResetLoading(false);
       if (res.success) {
         setForgotStep("verify");

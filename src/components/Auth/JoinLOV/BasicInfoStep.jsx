@@ -16,6 +16,7 @@ import {
   Shield,
 } from "lucide-react";
 import { emailService } from "../../../services/emailService";
+import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import TurnstileWidget from "../../Common/TurnstileWidget";
 import members from "../../../data/members";
 import initialPendingUsers from "../../../data/pendingUsers";
@@ -35,6 +36,53 @@ function BasicInfoStep({ formData, setFormData }) {
   // Cloudflare Turnstile bot verification state
   const [turnstileToken, setTurnstileToken] = useState(null);
   const [turnstileVerified, setTurnstileVerified] = useState(false);
+
+  // Handle returning from Email confirmation link (Supabase callback / URL hash / query param)
+  useEffect(() => {
+    const handleUrlVerification = async () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const hasVerifiedParam = searchParams.get("verified") === "true";
+        const hash = window.location.hash || "";
+        const hasAuthTokens =
+          hash.includes("access_token") ||
+          hash.includes("type=magiclink") ||
+          hash.includes("type=signup") ||
+          hash.includes("type=recovery");
+
+        if (hasVerifiedParam || hasAuthTokens) {
+          let verifiedEmail = null;
+          if (isSupabaseConfigured()) {
+            const { data } = await supabase.auth.getSession();
+            if (data?.session?.user?.email) {
+              verifiedEmail = data.session.user.email;
+            }
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            email: verifiedEmail || prev.email,
+            emailVerified: true,
+          }));
+          setTurnstileVerified(true);
+          setOtpSent(false);
+          setEnteredOtp("");
+          setStatusMessage(
+            "Gmail verified successfully via confirmation link! Ownership confirmed."
+          );
+
+          // Clean up the URL query/hash without reloading the page
+          if (window.history?.replaceState) {
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+        }
+      } catch (err) {
+        console.warn("[LOV] Verification link detection error:", err);
+      }
+    };
+
+    handleUrlVerification();
+  }, [setFormData]);
 
   // Timer countdown for resend button
   useEffect(() => {
@@ -149,7 +197,9 @@ function BasicInfoStep({ formData, setFormData }) {
 
     setSendingOtp(true);
     try {
-      const res = await emailService.sendVerificationOtp(validation.cleanEmail);
+      const res = await emailService.sendVerificationOtp(validation.cleanEmail, {
+        redirectTo: "/join?verified=true",
+      });
       setSendingOtp(false);
 
       if (res.success) {

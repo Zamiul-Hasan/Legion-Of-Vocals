@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { supabase, isSupabaseConfigured, getProductionAuthRedirectUrl } from "../lib/supabase";
 
 export const authService = {
   // Sign up with True Email Verification
@@ -21,7 +21,7 @@ export const authService = {
           role,
           department,
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: getProductionAuthRedirectUrl("/dashboard"),
       },
     });
 
@@ -55,7 +55,7 @@ export const authService = {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: getProductionAuthRedirectUrl("/dashboard"),
           skipBrowserRedirect: true,
         },
       });

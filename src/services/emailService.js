@@ -3,7 +3,7 @@
 // Dual dispatch: Vercel Resend /api/send-otp & Supabase Auth OTP
 // ==============================================================================
 
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { supabase, isSupabaseConfigured, getProductionAuthRedirectUrl } from "../lib/supabase";
 
 const OTP_STORAGE_PREFIX = "lov_email_otp_";
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
@@ -12,13 +12,19 @@ export const emailService = {
   /**
    * Dispatches a 6-digit OTP to the recipient's Gmail inbox.
    * Prioritizes Vercel /api/send-otp (Resend, 100% inbox delivery)
-   * Falls back to Supabase built-in Auth OTP.
+   * Falls back to Supabase built-in Auth OTP with production redirect URL.
    */
-  async sendVerificationOtp(email) {
+  async sendVerificationOtp(email, options = {}) {
     const cleanEmail = (email || "").trim().toLowerCase();
     if (!cleanEmail) {
       return { success: false, reason: "Please provide a valid Gmail address." };
     }
+
+    const redirectPath =
+      typeof options === "string"
+        ? options
+        : options?.redirectTo || "/join?verified=true";
+    const targetRedirectUrl = getProductionAuthRedirectUrl(redirectPath);
 
     // 1. First try Vercel /api/send-otp (powered by Resend API if RESEND_API_KEY configured)
     const localOtp = String(Math.floor(100000 + Math.random() * 900000));
@@ -64,6 +70,7 @@ export const emailService = {
           email: cleanEmail,
           options: {
             shouldCreateUser: true,
+            emailRedirectTo: targetRedirectUrl,
           },
         });
 
@@ -72,7 +79,7 @@ export const emailService = {
           return {
             success: true,
             provider: "supabase",
-            message: `Verification code sent to ${cleanEmail}. Please check your Inbox and Spam folder.`,
+            message: `Verification code dispatched to ${cleanEmail}. Enter the 6-digit code or click the confirmation link in your Gmail. (Check Inbox and Spam).`,
           };
         } else {
           console.warn("[LOV Auth] Supabase OTP error:", sbError.message);
@@ -112,11 +119,34 @@ export const emailService = {
     // If sent via Supabase OTP:
     if (provider === "supabase" && isSupabaseConfigured()) {
       try {
-        const { data, error } = await supabase.auth.verifyOtp({
+        let { data, error } = await supabase.auth.verifyOtp({
           email: cleanEmail,
           token: cleanCode,
           type: "email",
         });
+
+        // Fallback to "signup" or "magiclink" if "email" type didn't match the token type
+        if (error) {
+          const fallbackSignup = await supabase.auth.verifyOtp({
+            email: cleanEmail,
+            token: cleanCode,
+            type: "signup",
+          });
+          if (!fallbackSignup.error && fallbackSignup.data?.user) {
+            data = fallbackSignup.data;
+            error = null;
+          } else {
+            const fallbackMagic = await supabase.auth.verifyOtp({
+              email: cleanEmail,
+              token: cleanCode,
+              type: "magiclink",
+            });
+            if (!fallbackMagic.error && fallbackMagic.data?.user) {
+              data = fallbackMagic.data;
+              error = null;
+            }
+          }
+        }
 
         if (!error && data?.user) {
           sessionStorage.removeItem(`lov_otp_provider_${cleanEmail}`);
@@ -155,9 +185,10 @@ export const emailService = {
 
     return {
       success: false,
-      reason: "Incorrect verification code. Please check your Gmail and enter the 6-digit code.",
+      reason: "Incorrect verification code. Please check your Gmail and enter the 6-digit code, or click the confirmation link in the email.",
     };
   },
 };
 
 export default emailService;
+

@@ -117,6 +117,7 @@ function RegisterForm({
       "lov_pending_users_v2",
       JSON.stringify([newPendingUser, ...existing])
     );
+    localStorage.removeItem("lov_join_form_draft");
 
     setFinalLovId(assignedLovId);
     setSuccessOpen(true);
