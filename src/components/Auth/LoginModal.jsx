@@ -143,12 +143,12 @@ export default function LoginModal({ isOpen, onClose }) {
     return `${name.slice(0, 2)}***${name.slice(-1)}@${domain}`;
   };
 
-  // Find account across all registered collections
-  const findAccountByQuery = (query) => {
+  // Find account strictly across real registered collections
+  const findAccountByQuery = async (query) => {
     const clean = (query || "").trim().toLowerCase();
     if (!clean) return null;
 
-    // Check founder account
+    // 1. Check founder account
     const isFounder =
       clean === "zamiul" ||
       clean === "zamiul.hasan@gmail.com" ||
@@ -163,7 +163,7 @@ export default function LoginModal({ isOpen, onClose }) {
       };
     }
 
-    // Check registered members in lov_members_v2
+    // 2. Check registered members in lov_members_v2
     const savedMembers = JSON.parse(
       localStorage.getItem("lov_members_v2") || "[]"
     );
@@ -183,7 +183,7 @@ export default function LoginModal({ isOpen, onClose }) {
       };
     }
 
-    // Check pending applicants in lov_pending_users_v2
+    // 3. Check pending applicants in lov_pending_users_v2
     const savedPending = JSON.parse(
       localStorage.getItem("lov_pending_users_v2") ||
         localStorage.getItem("pendingUsers") ||
@@ -205,16 +205,30 @@ export default function LoginModal({ isOpen, onClose }) {
       };
     }
 
-    // Fallback: If input looks like an email, target it for Supabase/Resend
-    if (clean.includes("@")) {
-      return {
-        type: "supabase",
-        email: clean,
-        name: clean.split("@")[0],
-        username: clean.split("@")[0],
-      };
+    // 4. If Supabase is active, check profiles table
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, email, username, full_name, lov_id")
+          .or(`email.ilike.${clean},username.ilike.${clean}`)
+          .maybeSingle();
+
+        if (profile && profile.email) {
+          return {
+            type: "supabase",
+            id: profile.id,
+            email: profile.email,
+            name: profile.full_name || profile.username,
+            username: profile.username,
+          };
+        }
+      } catch (e) {
+        console.warn("[LOV] Supabase profile check error:", e);
+      }
     }
 
+    // STRICT: Absolutely NO fallback. If not registered, return null!
     return null;
   };
 
@@ -224,21 +238,26 @@ export default function LoginModal({ isOpen, onClose }) {
     setResetError("");
     setResetInfo("");
 
-    if (!resetIdentifier.trim()) {
+    const cleanInput = resetIdentifier.trim();
+    if (!cleanInput) {
       setResetError("Please enter your registered Email, Username, or LOV ID.");
       return;
     }
 
-    const target = findAccountByQuery(resetIdentifier);
-    if (!target) {
-      setResetError("No account found matching this Email, Username, or LOV ID.");
-      return;
-    }
-
-    setResetTarget(target);
     setResetLoading(true);
 
     try {
+      const target = await findAccountByQuery(cleanInput);
+      if (!target || !target.email) {
+        setResetLoading(false);
+        setResetError(
+          "No registered account found matching this Email, Username, or LOV ID. Please register first via Join LOV."
+        );
+        return;
+      }
+
+      setResetTarget(target);
+
       const res = await emailService.sendVerificationOtp(target.email);
       setResetLoading(false);
       if (res.success) {
