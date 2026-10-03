@@ -11,14 +11,16 @@ import {
 } from "lucide-react";
 import BackButton from "../UI/BackButton";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
-import { useMembers } from "../../hooks/useMembers";
+import { useMembers, isMemberOwner } from "../../hooks/useMembers";
 import { openChatWithMember } from "../../hooks/useMessenger";
 
 function ProfileBanner({ member }) {
-  const { updateMemberAvatar, updateMemberCover } = useMembers();
+  const { currentUser, updateMemberAvatar, updateMemberCover } = useMembers();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [toast, setToast] = useState("");
   const coverInputRef = useRef(null);
+
+  const isOwner = isMemberOwner(currentUser, member);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -64,28 +66,30 @@ function ProfileBanner({ member }) {
       <div className="absolute inset-0 bg-black/70" />
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
 
-      {/* Top Bar: Back Button + Facebook-Style Edit Cover Photo */}
+      {/* Top Bar: Back Button + Facebook-Style Edit Cover Photo (Only for Owner) */}
       <div className="absolute top-28 inset-x-0 z-20">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <BackButton label="Back to Team" fallback="/team" variant="glass" />
 
-          <div>
-            <button
-              type="button"
-              onClick={() => coverInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/85 hover:bg-slate-800 text-white border border-slate-700 hover:border-cyan-400 backdrop-blur-md text-xs sm:text-sm font-semibold shadow-lg transition cursor-pointer"
-            >
-              <ImagePlus size={16} className="text-cyan-400" />
-              <span>Edit Cover Photo</span>
-            </button>
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleCoverUpload}
-              className="hidden"
-            />
-          </div>
+          {isOwner && (
+            <div>
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/85 hover:bg-slate-800 text-white border border-slate-700 hover:border-cyan-400 backdrop-blur-md text-xs sm:text-sm font-semibold shadow-lg transition cursor-pointer"
+              >
+                <ImagePlus size={16} className="text-cyan-400" />
+                <span>Edit Cover Photo</span>
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverUpload}
+                className="hidden"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -98,24 +102,30 @@ function ProfileBanner({ member }) {
             transition={{ duration: 0.7 }}
             className="flex flex-col md:flex-row items-center md:items-end gap-8"
           >
-            {/* Facebook-Style Interactive Avatar with Camera Button */}
+            {/* Interactive Avatar with Camera Button (Only editable by owner) */}
             <div className="relative group shrink-0">
               <div
-                onClick={() => setIsAvatarModalOpen(true)}
-                className="relative w-44 h-44 rounded-full border-4 border-cyan-400 overflow-hidden shadow-[0_0_35px_rgba(6,182,212,0.35)] cursor-pointer bg-slate-900"
-                title="Click to update profile picture"
+                onClick={isOwner ? () => setIsAvatarModalOpen(true) : undefined}
+                className={`relative w-44 h-44 rounded-full border-4 border-cyan-400 overflow-hidden shadow-[0_0_35px_rgba(6,182,212,0.35)] bg-slate-900 ${
+                  isOwner ? "cursor-pointer" : ""
+                }`}
+                title={isOwner ? "Click to update profile picture" : member.displayName}
               >
                 <img
                   src={member.avatar}
                   alt={member.displayName}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  className={`w-full h-full object-cover ${
+                    isOwner ? "group-hover:scale-105 transition duration-300" : ""
+                  }`}
                 />
 
-                {/* Hover Overlay like Facebook */}
-                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white">
-                  <Camera size={24} className="text-cyan-400 mb-1" />
-                  <span className="text-xs font-bold">Update Photo</span>
-                </div>
+                {/* Hover Overlay like Facebook (Only for owner) */}
+                {isOwner && (
+                  <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white">
+                    <Camera size={24} className="text-cyan-400 mb-1" />
+                    <span className="text-xs font-bold">Update Photo</span>
+                  </div>
+                )}
               </div>
 
               {/* Studio Frame Badge if set */}
@@ -125,16 +135,18 @@ function ProfileBanner({ member }) {
                 </div>
               )}
 
-              {/* Facebook-style Bottom-Right Circular Camera Badge */}
-              <button
-                type="button"
-                onClick={() => setIsAvatarModalOpen(true)}
-                aria-label="Update profile picture"
-                title="Update Profile Picture"
-                className="absolute bottom-2 right-2 w-11 h-11 rounded-full bg-slate-900 hover:bg-cyan-500 text-white hover:text-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-xl transition cursor-pointer"
-              >
-                <Camera size={20} />
-              </button>
+              {/* Circular Camera Badge (Only for owner) */}
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  aria-label="Update profile picture"
+                  title="Update Profile Picture"
+                  className="absolute bottom-2 right-2 w-11 h-11 rounded-full bg-slate-900 hover:bg-cyan-500 text-white hover:text-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-xl transition cursor-pointer"
+                >
+                  <Camera size={20} />
+                </button>
+              )}
             </div>
 
             {/* Info */}
@@ -199,13 +211,15 @@ function ProfileBanner({ member }) {
         </div>
       </div>
 
-      {/* Facebook-style Profile Picture Modal */}
-      <ProfilePictureModal
-        isOpen={isAvatarModalOpen}
-        onClose={() => setIsAvatarModalOpen(false)}
-        member={member}
-        onSave={handleSaveAvatar}
-      />
+      {/* Facebook-style Profile Picture Modal (Only for owner) */}
+      {isOwner && (
+        <ProfilePictureModal
+          isOpen={isAvatarModalOpen}
+          onClose={() => setIsAvatarModalOpen(false)}
+          member={member}
+          onSave={handleSaveAvatar}
+        />
+      )}
     </section>
   );
 }

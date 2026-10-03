@@ -11,6 +11,31 @@ const AVATAR_OVERRIDES_KEY = "lov_avatar_overrides";
 const COVER_OVERRIDES_KEY = "lov_cover_overrides";
 const MEMBERS_EVENT = "lov-members-updated";
 
+/**
+ * Strictly verifies whether currentUser is the legitimate owner of member.
+ * Returns false if user is not logged in or doesn't match member.
+ */
+export function isMemberOwner(currentUser, member) {
+  if (!currentUser || !member) return false;
+
+  const currentId = currentUser.id != null ? String(currentUser.id).toLowerCase().trim() : null;
+  const currentEmail = currentUser.email ? currentUser.email.toLowerCase().trim() : null;
+  const currentLovId = currentUser.lovId ? currentUser.lovId.toLowerCase().trim() : null;
+  const currentUsername = currentUser.username ? currentUser.username.toLowerCase().trim() : null;
+
+  const memberId = member.id != null ? String(member.id).toLowerCase().trim() : null;
+  const memberEmail = member.email ? member.email.toLowerCase().trim() : null;
+  const memberLovId = member.lovId ? member.lovId.toLowerCase().trim() : null;
+  const memberUsername = member.username ? member.username.toLowerCase().trim() : null;
+
+  if (currentEmail && memberEmail && currentEmail === memberEmail) return true;
+  if (currentLovId && memberLovId && currentLovId === memberLovId) return true;
+  if (currentUsername && memberUsername && currentUsername === memberUsername) return true;
+  if (currentId && memberId && currentId === memberId) return true;
+
+  return false;
+}
+
 export function getAvatarOverrides() {
   try {
     return JSON.parse(localStorage.getItem(AVATAR_OVERRIDES_KEY) || "{}");
@@ -217,8 +242,33 @@ export function useMembers() {
   }, []);
 
   const updateMemberProfile = (idOrUsername, patch) => {
+    const authUser = loadCurrentUser();
+    if (!authUser) {
+      console.warn("Unauthorized: Must be logged in to update profile");
+      return;
+    }
+
     const current = loadMembers();
     const query = String(idOrUsername).toLowerCase().trim();
+
+    const isAuthUserMatch =
+      (authUser.id != null && String(authUser.id).toLowerCase() === query) ||
+      (authUser.username && authUser.username.toLowerCase() === query) ||
+      (authUser.lovId && authUser.lovId.toLowerCase() === query) ||
+      (authUser.email && authUser.email.toLowerCase() === query);
+
+    const targetMember = current.find((m) =>
+      (m.id != null && String(m.id).toLowerCase() === query) ||
+      (m.username && m.username.toLowerCase() === query) ||
+      (m.lovId && m.lovId.toLowerCase() === query) ||
+      (m.email && m.email.toLowerCase() === query)
+    );
+
+    const isAuthorized = isAuthUserMatch || (targetMember && isMemberOwner(authUser, targetMember));
+    if (!isAuthorized) {
+      console.warn("Forbidden: Cannot update another user's profile");
+      return;
+    }
 
     const updated = current.map((m) => {
       const isMatch =
@@ -238,14 +288,7 @@ export function useMembers() {
     saveMembers(updated);
 
     // If matches auth user, sync useAuth as well
-    const authUser = loadCurrentUser();
-    if (
-      authUser &&
-      (String(authUser.id).toLowerCase() === query ||
-        (authUser.username && authUser.username.toLowerCase() === query) ||
-        (authUser.lovId && authUser.lovId.toLowerCase() === query) ||
-        (authUser.email && authUser.email.toLowerCase() === query))
-    ) {
+    if (isAuthUserMatch || (targetMember && isMemberOwner(authUser, targetMember))) {
       saveCurrentUser({
         ...authUser,
         ...patch,
@@ -260,11 +303,37 @@ export function useMembers() {
   ) => {
     if (!avatarDataUrl) return null;
 
-    // Compress avatar to ~25KB to prevent storage overflows
-    const compressedAvatar = await compressImage(avatarDataUrl, 320, 0.85);
+    const authUser = loadCurrentUser();
+    if (!authUser) {
+      console.warn("Unauthorized: Must be logged in to update avatar");
+      return null;
+    }
 
     const current = loadMembers();
     const query = String(idOrUsername).toLowerCase().trim();
+
+    const isAuthUserMatch =
+      (authUser.id != null && String(authUser.id).toLowerCase() === query) ||
+      (authUser.username && authUser.username.toLowerCase() === query) ||
+      (authUser.lovId && authUser.lovId.toLowerCase() === query) ||
+      (authUser.email && authUser.email.toLowerCase() === query);
+
+    const targetMember = current.find((m) =>
+      (m.id != null && String(m.id).toLowerCase() === query) ||
+      (m.username && m.username.toLowerCase() === query) ||
+      (m.lovId && m.lovId.toLowerCase() === query) ||
+      (m.email && m.email.toLowerCase() === query)
+    );
+
+    const isAuthorized = isAuthUserMatch || (targetMember && isMemberOwner(authUser, targetMember));
+    if (!isAuthorized) {
+      console.warn("Forbidden: Cannot update another user's avatar");
+      return null;
+    }
+
+    // Compress avatar to ~25KB to prevent storage overflows
+    const compressedAvatar = await compressImage(avatarDataUrl, 320, 0.85);
+
     let updatedMember = null;
 
     // 1. Save in avatar overrides map
@@ -299,14 +368,6 @@ export function useMembers() {
     });
 
     // If member not found in list but matches auth user, create/add them
-    const authUser = loadCurrentUser();
-    const isAuthUserMatch =
-      authUser &&
-      (String(authUser.id).toLowerCase() === query ||
-        (authUser.username && authUser.username.toLowerCase() === query) ||
-        (authUser.lovId && authUser.lovId.toLowerCase() === query) ||
-        (authUser.email && authUser.email.toLowerCase() === query));
-
     if (!memberFound && isAuthUserMatch) {
       updatedMember = {
         ...authUser,
@@ -321,18 +382,16 @@ export function useMembers() {
     setMembers(updated);
     saveMembers(updated);
 
-    // 3. Sync useAuth if it's the current user
-    if (isAuthUserMatch || (updatedMember && authUser && (authUser.id === updatedMember.id || authUser.username === updatedMember.username))) {
-      saveCurrentUser({
-        ...authUser,
-        avatar: compressedAvatar,
-        avatarFrame: options.frameBadge ?? authUser.avatarFrame ?? "",
-        avatarCaption: options.caption ?? authUser.avatarCaption ?? "",
-      });
-      if (authUser.username) saveAvatarOverride(authUser.username, compressedAvatar);
-      if (authUser.lovId) saveAvatarOverride(authUser.lovId, compressedAvatar);
-      if (authUser.email) saveAvatarOverride(authUser.email, compressedAvatar);
-    }
+    // 3. Sync useAuth
+    saveCurrentUser({
+      ...authUser,
+      avatar: compressedAvatar,
+      avatarFrame: options.frameBadge ?? authUser.avatarFrame ?? "",
+      avatarCaption: options.caption ?? authUser.avatarCaption ?? "",
+    });
+    if (authUser.username) saveAvatarOverride(authUser.username, compressedAvatar);
+    if (authUser.lovId) saveAvatarOverride(authUser.lovId, compressedAvatar);
+    if (authUser.email) saveAvatarOverride(authUser.email, compressedAvatar);
 
     // 4. Sync with Supabase if configured
     if (isSupabaseConfigured() && updatedMember?.id) {
@@ -362,8 +421,35 @@ export function useMembers() {
 
   const updateMemberCover = async (idOrUsername, coverDataUrl) => {
     if (!coverDataUrl) return;
-    const compressedCover = await compressImage(coverDataUrl, 960, 0.82);
+
+    const authUser = loadCurrentUser();
+    if (!authUser) {
+      console.warn("Unauthorized: Must be logged in to update cover");
+      return;
+    }
+
     const query = String(idOrUsername).toLowerCase().trim();
+    const isAuthUserMatch =
+      (authUser.id != null && String(authUser.id).toLowerCase() === query) ||
+      (authUser.username && authUser.username.toLowerCase() === query) ||
+      (authUser.lovId && authUser.lovId.toLowerCase() === query) ||
+      (authUser.email && authUser.email.toLowerCase() === query);
+
+    const current = loadMembers();
+    const targetMember = current.find((m) =>
+      (m.id != null && String(m.id).toLowerCase() === query) ||
+      (m.username && m.username.toLowerCase() === query) ||
+      (m.lovId && m.lovId.toLowerCase() === query) ||
+      (m.email && m.email.toLowerCase() === query)
+    );
+
+    const isAuthorized = isAuthUserMatch || (targetMember && isMemberOwner(authUser, targetMember));
+    if (!isAuthorized) {
+      console.warn("Forbidden: Cannot update another user's cover");
+      return;
+    }
+
+    const compressedCover = await compressImage(coverDataUrl, 960, 0.82);
     saveCoverOverride(query, compressedCover);
 
     updateMemberProfile(idOrUsername, { cover: compressedCover });

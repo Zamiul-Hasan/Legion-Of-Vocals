@@ -14,6 +14,7 @@ import {
   Globe,
 } from "lucide-react";
 import { compressImage } from "../../utils/imageCompressor";
+import { useMembers, isMemberOwner } from "../../hooks/useMembers";
 import defaultLogo from "../../assets/images/logos/logo.png";
 import blueLockBanner from "../../assets/images/temp/blue-lock-banner.jpg";
 import demonSlayerBanner from "../../assets/images/temp/Demon-Slayer-banner.jpg";
@@ -40,6 +41,9 @@ export default function ProfilePictureModal({
   member,
   onSave,
 }) {
+  const { currentUser } = useMembers();
+  const isOwner = isMemberOwner(currentUser, member);
+
   const [sourceUrl, setSourceUrl] = useState(member?.avatar || defaultLogo);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -55,7 +59,7 @@ export default function ProfilePictureModal({
   const imageRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen && member) {
+    if (isOpen && member && isOwner) {
       setSourceUrl(member.avatar || defaultLogo);
       setZoom(1);
       setRotation(0);
@@ -65,9 +69,9 @@ export default function ProfilePictureModal({
       setCustomUrl("");
       setShowUrlInput(false);
     }
-  }, [isOpen, member]);
+  }, [isOpen, member, isOwner]);
 
-  if (!isOpen || !member) return null;
+  if (!isOpen || !member || !isOwner) return null;
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];

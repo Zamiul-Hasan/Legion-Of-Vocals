@@ -10,12 +10,14 @@ import {
   MessageCircle,
 } from "lucide-react";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
-import { useMembers } from "../../hooks/useMembers";
+import { useMembers, isMemberOwner } from "../../hooks/useMembers";
 import { openChatWithMember } from "../../hooks/useMessenger";
 
 function MemberCard({ member }) {
-  const { updateMemberAvatar } = useMembers();
+  const { currentUser, updateMemberAvatar } = useMembers();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const isOwner = isMemberOwner(currentUser, member);
 
   return (
     <>
@@ -43,24 +45,28 @@ function MemberCard({ member }) {
         )}
       </div>
 
-      {/* Avatar with Facebook-style Camera Button */}
+      {/* Avatar with Facebook-style Camera Button (Only for owner) */}
       <div className="relative flex justify-center">
         <div className="relative -mt-14 group">
           <img
             src={member.avatar}
             alt={member.displayName}
-            onClick={() => setIsModalOpen(true)}
-            className="w-28 h-28 rounded-full border-4 border-cyan-400 object-cover bg-slate-900 cursor-pointer"
-            title="Click to update profile picture"
+            onClick={isOwner ? () => setIsModalOpen(true) : undefined}
+            className={`w-28 h-28 rounded-full border-4 border-cyan-400 object-cover bg-slate-900 ${
+              isOwner ? "cursor-pointer" : ""
+            }`}
+            title={isOwner ? "Click to update profile picture" : member.displayName}
           />
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            title="Update Profile Picture"
-            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-slate-900 hover:bg-cyan-500 text-white hover:text-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-lg transition cursor-pointer"
-          >
-            <Camera size={14} />
-          </button>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              title="Update Profile Picture"
+              className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-slate-900 hover:bg-cyan-500 text-white hover:text-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-lg transition cursor-pointer"
+            >
+              <Camera size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -165,14 +171,16 @@ function MemberCard({ member }) {
       </div>
     </motion.div>
 
-    <ProfilePictureModal
-      isOpen={isModalOpen}
-      onClose={() => setIsModalOpen(false)}
-      member={member}
-      onSave={(newAvatar, options) =>
-        updateMemberAvatar(member.id || member.username, newAvatar, options)
-      }
-    />
+    {isOwner && (
+      <ProfilePictureModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        member={member}
+        onSave={(newAvatar, options) =>
+          updateMemberAvatar(member.id || member.username, newAvatar, options)
+        }
+      />
+    )}
     </>
   );
 }
