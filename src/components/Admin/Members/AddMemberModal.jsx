@@ -24,7 +24,11 @@ function AddMemberModal({
 
   const handleSearch = () => {
     setNotFound(false);
-    const saved = JSON.parse(localStorage.getItem("pendingUsers") || "[]");
+    const saved = JSON.parse(
+      localStorage.getItem("lov_pending_users_v2") ||
+      localStorage.getItem("pendingUsers") ||
+      "[]"
+    );
     const allPending = [...saved, ...initialPendingUsers];
     const query = lovId.trim().toLowerCase();
 

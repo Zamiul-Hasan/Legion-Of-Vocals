@@ -5,7 +5,7 @@ import blueLockBanner from "../assets/images/temp/blue-lock-banner.jpg";
 import { contestService } from "../services/contestService";
 import { isSupabaseConfigured } from "../lib/supabase";
 
-const STORAGE_KEY = "lov_contests_v2";
+const STORAGE_KEY = "lov_contests_v3";
 const SYNC_EVENT = "lov-contests-updated";
 
 export const CONTEST_BANNER_PRESETS = [

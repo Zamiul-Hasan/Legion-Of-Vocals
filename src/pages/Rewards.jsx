@@ -13,9 +13,12 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Button from "../components/UI/Button";
 import rewards from "../constants/rewards";
 import members from "../data/members";
+import useAuth from "../hooks/useAuth";
 
 function Rewards() {
-  const [points, setPoints] = useState(members[0].stats.points);
+  const { user } = useAuth();
+  const initialPoints = user?.points ?? user?.stats?.points ?? members[0].stats.points;
+  const [points, setPoints] = useState(initialPoints);
   const [category, setCategory] = useState("All");
   const [redeemedIds, setRedeemedIds] = useState([]);
   const [message, setMessage] = useState("");

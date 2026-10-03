@@ -15,9 +15,18 @@ import StatCard from "./StatCard";
 import members from "../../data/members";
 import tasks from "../../data/tasks";
 import announcements from "../../data/announcements";
+import useAuth from "../../hooks/useAuth";
 
 function DashboardOverview() {
-  const user = members[0];
+  const { user: authUser } = useAuth();
+  const user = authUser || members[0];
+  const userDisplayName =
+    user?.displayName || user?.fullName || user?.username || "Studio Member";
+  const userStats = user?.stats || {
+    projects: 0,
+    dubVideos: 0,
+    points: user?.points || 0,
+  };
 
   const statusBadge = (status) => {
     switch (status) {
@@ -38,7 +47,7 @@ function DashboardOverview() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 border border-cyan-500/20 rounded-3xl p-7">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-white">
-            Welcome back, {user.displayName} 👋
+            Welcome back, {userDisplayName} 👋
           </h1>
           <p className="text-gray-400 mt-2">
             Here&apos;s your studio activity, assigned dubbing lines, and community progress.
@@ -77,27 +86,27 @@ function DashboardOverview() {
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           title="Projects"
-          value={user.stats.projects}
+          value={userStats.projects ?? 0}
           icon={FolderKanban}
         />
 
         <StatCard
           title="Dub Videos"
-          value={user.stats.dubVideos}
+          value={userStats.dubVideos ?? 0}
           icon={Video}
           color="text-green-400"
         />
 
         <StatCard
           title="Points"
-          value={user.stats.points}
+          value={userStats.points ?? 0}
           icon={Trophy}
           color="text-yellow-400"
         />
 
         <StatCard
           title="Level"
-          value={user.level}
+          value={user?.level ?? 1}
           icon={Star}
           color="text-pink-400"
         />
@@ -121,7 +130,16 @@ function DashboardOverview() {
           </div>
 
           <div className="space-y-4">
-            {tasks.map((task) => (
+            {tasks.length === 0 ? (
+              <div className="py-12 px-4 text-center rounded-2xl bg-slate-950/40 border border-slate-800">
+                <CheckCircle2 size={32} className="mx-auto text-cyan-400/60 mb-2" />
+                <p className="text-gray-300 font-medium text-sm">All caught up!</p>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  No active dubbing tasks assigned right now. You will be notified when assignments are made for your department.
+                </p>
+              </div>
+            ) : (
+              tasks.map((task) => (
               <div
                 key={task.id}
                 className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/30 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -155,7 +173,7 @@ function DashboardOverview() {
                   </span>
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
 
