@@ -19,15 +19,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMembers } from "../../hooks/useMembers";
 import { useNotifications } from "../../data/notifications";
 import { useMessenger } from "../../hooks/useMessenger";
-import { useTheme } from "../../context/ThemeContext";
-import ThemeSwitcher from "../Theme/ThemeSwitcher";
 import BackButton from "../UI/BackButton";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
 
 function DashboardTopbar() {
   const { currentUser, updateMemberAvatar } = useMembers();
   const { totalUnread } = useMessenger();
-  const { isSasuke } = useTheme();
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const notifRef = useRef(null);
@@ -53,18 +50,14 @@ function DashboardTopbar() {
 
   const getCategoryIcon = (cat) => {
     if (cat === "Points") return <Trophy size={16} className="text-yellow-400" />;
-    if (cat === "Projects") return <Film size={16} className={isSasuke ? "text-blue-400" : "text-cyan-400"} />;
+    if (cat === "Projects") return <Film size={16} className="text-cyan-400" />;
     if (cat === "Announcements")
       return <Megaphone size={16} className="text-pink-400" />;
     return <ShieldCheck size={16} className="text-green-400" />;
   };
 
   return (
-    <header className={`sticky top-0 z-30 backdrop-blur-md border-b transition-colors duration-300 ${
-      isSasuke
-        ? "bg-[#0c0d12]/90 border-slate-800"
-        : "bg-slate-950/85 border-cyan-500/20"
-    }`}>
+    <header className="sticky top-0 z-30 bg-slate-950/85 backdrop-blur-md border-b border-cyan-500/20">
       <div className="flex items-center justify-between gap-4 px-6 md:px-8 py-4">
         {/* Left: Back Button + Search */}
         <div className="flex items-center gap-3 w-full max-w-xl">
@@ -79,22 +72,16 @@ function DashboardTopbar() {
             <input
               type="text"
               placeholder="Search projects, dubs, or LOV ID..."
-              className={`w-full border rounded-xl py-2.5 pl-11 pr-4 text-sm text-white outline-none transition ${
-                isSasuke
-                  ? "bg-slate-950 border-slate-800 focus:border-blue-500"
-                  : "bg-slate-900 border-slate-700 focus:border-cyan-400"
-              }`}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white outline-none focus:border-cyan-400 transition"
             />
           </div>
         </div>
 
         {/* Right Side */}
         <div className="flex items-center gap-3 md:gap-4">
-          <ThemeSwitcher compact={true} />
-
           <Link
             to="/"
-            className="lg:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-gray-300 hover:text-white"
+            className="lg:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-gray-300 hover:border-cyan-400"
             title="Public Home"
           >
             <Home size={20} />
@@ -102,11 +89,7 @@ function DashboardTopbar() {
 
           <Link
             to="/upload-dub"
-            className={`hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition ${
-              isSasuke
-                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
-                : "bg-cyan-500 hover:bg-cyan-400 text-slate-950"
-            }`}
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-sm transition"
           >
             <Upload size={16} />
             Upload Dub
@@ -117,17 +100,11 @@ function DashboardTopbar() {
             to="/messages"
             aria-label="Messages"
             title="LOV Studio Messenger"
-            className={`relative p-2.5 rounded-xl border transition ${
-              isSasuke
-                ? "bg-slate-900 border-slate-800 hover:border-blue-500 text-white hover:text-blue-400"
-                : "bg-slate-900 border-slate-700 hover:border-cyan-400 text-white hover:text-cyan-400"
-            }`}
+            className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white hover:text-cyan-400 transition"
           >
             <MessageCircle size={20} />
             {totalUnread > 0 && (
-              <span className={`absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full text-xs font-black flex items-center justify-center ${
-                isSasuke ? "bg-blue-600 text-white" : "bg-cyan-500 text-slate-950"
-              }`}>
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-cyan-500 text-slate-950 text-xs font-black flex items-center justify-center">
                 {totalUnread}
               </span>
             )}
@@ -139,12 +116,10 @@ function DashboardTopbar() {
               type="button"
               onClick={() => setNotifOpen((prev) => !prev)}
               aria-label="Notifications"
-              className={`relative p-2.5 rounded-xl border transition cursor-pointer ${
+              className={`relative p-2.5 rounded-xl border transition ${
                 notifOpen
-                  ? isSasuke
-                    ? "bg-blue-600/20 border-blue-500 text-blue-400"
-                    : "bg-cyan-500/20 border-cyan-400 text-cyan-400"
-                  : "bg-slate-900 border-slate-800 hover:border-blue-500 text-white"
+                  ? "bg-cyan-500/20 border-cyan-400 text-cyan-400"
+                  : "bg-slate-900 border-slate-700 hover:border-cyan-400 text-white"
               }`}
             >
               <Bell size={20} />
@@ -162,21 +137,15 @@ function DashboardTopbar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.96 }}
                   transition={{ duration: 0.18 }}
-                  className={`absolute right-0 top-14 w-80 sm:w-96 rounded-3xl border shadow-2xl overflow-hidden z-50 ${
-                    isSasuke
-                      ? "bg-slate-950 border-blue-500/40"
-                      : "bg-slate-900 border-cyan-500/30"
-                  }`}
+                  className="absolute right-0 top-14 w-80 sm:w-96 rounded-2xl bg-slate-900 border border-cyan-500/30 shadow-2xl overflow-hidden z-50"
                 >
-                  <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+                  <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
                     <div className="flex items-center gap-2">
                       <h3 className="text-white font-bold text-base">
                         Notifications
                       </h3>
                       {unreadCount > 0 && (
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                          isSasuke ? "bg-blue-600 text-white" : "bg-cyan-500 text-slate-950"
-                        }`}>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500 text-slate-950">
                           {unreadCount} New
                         </span>
                       )}
@@ -186,9 +155,7 @@ function DashboardTopbar() {
                       <button
                         type="button"
                         onClick={markAllRead}
-                        className={`text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                          isSasuke ? "text-blue-400 hover:text-blue-300" : "text-cyan-400 hover:text-cyan-300"
-                        }`}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1"
                       >
                         <CheckCheck size={14} />
                         Mark all read
@@ -212,8 +179,8 @@ function DashboardTopbar() {
                           }}
                           className={`p-4 cursor-pointer transition flex items-start justify-between gap-3 ${
                             item.unread
-                              ? isSasuke ? "bg-blue-600/10 hover:bg-slate-900" : "bg-cyan-500/5 hover:bg-slate-800/90"
-                              : "hover:bg-slate-900/60 opacity-75"
+                              ? "bg-cyan-500/5 hover:bg-slate-800/90"
+                              : "hover:bg-slate-800/50 opacity-75"
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -222,14 +189,14 @@ function DashboardTopbar() {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className={`text-[11px] font-semibold ${isSasuke ? "text-blue-400" : "text-cyan-400"}`}>
+                                <span className="text-[11px] font-semibold text-cyan-400">
                                   {item.category}
                                 </span>
                                 <span className="text-[11px] text-gray-500">
                                   • {item.time}
                                 </span>
                                 {item.unread && (
-                                  <span className={`w-2 h-2 rounded-full ${isSasuke ? "bg-blue-400" : "bg-cyan-400"}`} />
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
                                 )}
                               </div>
                               <h4 className="text-sm font-semibold text-white mt-0.5 leading-snug">
@@ -247,7 +214,7 @@ function DashboardTopbar() {
                               e.stopPropagation();
                               removeNotification(item.id);
                             }}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition shrink-0 cursor-pointer"
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition shrink-0"
                             title="Dismiss"
                           >
                             <Trash2 size={14} />
@@ -257,15 +224,11 @@ function DashboardTopbar() {
                     )}
                   </div>
 
-                  <div className="p-3 border-t border-slate-800 bg-slate-950/80 text-center">
+                  <div className="p-3 border-t border-slate-800 bg-slate-950/60 text-center">
                     <Link
                       to="/notifications"
                       onClick={() => setNotifOpen(false)}
-                      className={`block w-full py-2 rounded-xl text-xs font-bold transition ${
-                        isSasuke
-                          ? "bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white"
-                          : "bg-cyan-500/15 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300"
-                      }`}
+                      className="block w-full py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 text-xs font-bold transition"
                     >
                       Open Notifications Page →
                     </Link>
@@ -275,27 +238,21 @@ function DashboardTopbar() {
             </AnimatePresence>
           </div>
 
-          {/* User with Camera Button */}
+          {/* User with Facebook-style Camera Button */}
           <div className="flex items-center gap-3">
             <div className="relative">
               <Link to={`/team/${currentUser.username}`}>
                 <img
                   src={currentUser.avatar}
                   alt={currentUser.displayName}
-                  className={`w-10 h-10 rounded-full border-2 object-cover bg-slate-900 ${
-                    isSasuke ? "border-blue-500" : "border-cyan-400"
-                  }`}
+                  className="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover bg-slate-900"
                 />
               </Link>
               <button
                 type="button"
                 onClick={() => setAvatarModalOpen(true)}
                 title="Update Profile Picture"
-                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow cursor-pointer transition ${
-                  isSasuke
-                    ? "bg-slate-900 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-500"
-                    : "bg-slate-900 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950 border-cyan-400"
-                }`}
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-900 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950 border border-cyan-400 flex items-center justify-center shadow cursor-pointer transition"
               >
                 <Camera size={10} />
               </button>
@@ -306,12 +263,10 @@ function DashboardTopbar() {
               className="hidden md:flex items-center gap-2 group"
             >
               <div className="text-left">
-                <h4 className={`text-white font-semibold text-sm transition ${
-                  isSasuke ? "group-hover:text-blue-400" : "group-hover:text-cyan-400"
-                }`}>
+                <h4 className="text-white font-semibold text-sm group-hover:text-cyan-400 transition">
                   {currentUser.displayName}
                 </h4>
-                <p className={`text-xs font-semibold ${isSasuke ? "text-blue-400" : "text-cyan-400"}`}>
+                <p className="text-xs text-cyan-400">
                   {currentUser.lovId} • Lv.{currentUser.level}
                 </p>
               </div>
