@@ -6,31 +6,43 @@ import {
 } from "lucide-react";
 
 import StatCard from "../../UI/StatCard";
-
-const stats = [
-  {
-    title: "Members",
-    value: 24,
-    icon: Users,
-  },
-  {
-    title: "Projects",
-    value: 8,
-    icon: FolderKanban,
-  },
-  {
-    title: "Dub Videos",
-    value: 31,
-    icon: Mic2,
-  },
-  {
-    title: "Points",
-    value: 12850,
-    icon: Trophy,
-  },
-];
+import { useMembers } from "../../../hooks/useMembers";
+import { useProjects } from "../../../hooks/useProjects";
+import { useDubVideos } from "../../../hooks/useDubVideos";
 
 function AdminStats() {
+  const { members } = useMembers();
+  const { projects } = useProjects();
+  const { videos } = useDubVideos();
+
+  const totalPoints = members.reduce(
+    (acc, m) => acc + (Number(m.points) || 0),
+    0
+  );
+
+  const stats = [
+    {
+      title: "Members",
+      value: members.length,
+      icon: Users,
+    },
+    {
+      title: "Projects",
+      value: projects.length,
+      icon: FolderKanban,
+    },
+    {
+      title: "Dub Videos",
+      value: videos.length,
+      icon: Mic2,
+    },
+    {
+      title: "Total Points",
+      value: totalPoints,
+      icon: Trophy,
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
       {stats.map((item) => (
