@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import soloLevelingBanner from "../assets/images/temp/solo-leveling-banner.jpg";
 import demonSlayerBanner from "../assets/images/temp/Demon-Slayer-banner.jpg";
 import blueLockBanner from "../assets/images/temp/blue-lock-banner.jpg";
+import { contestService } from "../services/contestService";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 const STORAGE_KEY = "lov_contests_v1";
 const SYNC_EVENT = "lov-contests-updated";
@@ -347,6 +349,40 @@ export function useContests() {
   const [contests, setContests] = useState(() => loadContests());
 
   useEffect(() => {
+    // If Supabase is configured, fetch active contest from PostgreSQL
+    if (isSupabaseConfigured()) {
+      contestService.getActiveContest().then((dbContest) => {
+        if (dbContest && dbContest.rounds && dbContest.rounds.length > 0) {
+          const current = loadContests();
+          const mappedRounds = dbContest.rounds.map((r) => ({
+            id: r.id,
+            roundNumber: r.round_number,
+            title: r.title,
+            hashtag: r.hashtag,
+            deadline: r.deadline,
+            status: r.status,
+          }));
+
+          const updated = current.map((c) => {
+            if (c.id === 1 || c.id === "1" || c.showBanner) {
+              return {
+                ...c,
+                title: dbContest.title || c.title,
+                subtitle: dbContest.subtitle || c.subtitle,
+                bannerCaption: dbContest.banner_caption || c.bannerCaption,
+                prizePool: dbContest.prize_pool || c.prizePool,
+                officialHashtag: dbContest.official_hashtag || c.officialHashtag,
+                rounds: mappedRounds,
+              };
+            }
+            return c;
+          });
+          setContests(updated);
+          saveContests(updated);
+        }
+      }).catch(() => {});
+    }
+
     const sync = () => setContests(loadContests());
     window.addEventListener(SYNC_EVENT, sync);
     window.addEventListener("storage", sync);
