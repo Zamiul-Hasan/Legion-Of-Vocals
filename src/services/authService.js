@@ -1,4 +1,6 @@
 import { supabase, isSupabaseConfigured, getProductionAuthRedirectUrl } from "../lib/supabase";
+import { auth, googleProvider, isFirebaseConfigured } from "../lib/firebase";
+import { signInWithPopup, signOut as fbSignOut } from "firebase/auth";
 
 export const authService = {
   // Sign up with True Email Verification
@@ -42,12 +44,38 @@ export const authService = {
     return { user: data?.user, session: data?.session, error };
   },
 
-  // Sign in with Google OAuth
+  // Sign in with Google (Prioritizes Firebase Popup for instant, seamless login)
   async signInWithGoogle() {
+    // 1. Try Firebase Google Popup (zero localhost redirect issues, instantaneous)
+    if (isFirebaseConfigured()) {
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const fbUser = result.user;
+        return {
+          user: {
+            id: fbUser.uid,
+            email: fbUser.email,
+            fullName: fbUser.displayName || fbUser.email.split("@")[0],
+            displayName: fbUser.displayName || fbUser.email.split("@")[0],
+            avatar: fbUser.photoURL,
+            emailVerified: fbUser.emailVerified,
+          },
+          session: { accessToken: await fbUser.getIdToken() },
+          error: null,
+        };
+      } catch (err) {
+        if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+          return { data: null, error: { message: "Google Sign-in popup was closed." } };
+        }
+        console.warn("[LOV Auth] Firebase Google login notice:", err);
+      }
+    }
+
+    // 2. Fallback to Supabase OAuth
     if (!isSupabaseConfigured()) {
       return {
         data: null,
-        error: { message: "Supabase is not configured." },
+        error: { message: "Authentication provider is not configured." },
       };
     }
 
@@ -65,7 +93,6 @@ export const authService = {
       }
 
       if (data?.url) {
-        // Probe the OAuth URL to check if Google provider is enabled in Supabase
         const probe = await fetch(data.url);
         if (!probe.ok) {
           const body = await probe.json().catch(() => ({}));
@@ -77,7 +104,7 @@ export const authService = {
               data: null,
               error: {
                 message:
-                  "Google Provider is currently disabled in your Supabase project. To enable it, visit Supabase Dashboard > Authentication > Providers > Google and switch it ON.",
+                  "Google Provider is disabled in Supabase. Please use Firebase login.",
                 code: "PROVIDER_DISABLED",
               },
             };
@@ -91,7 +118,6 @@ export const authService = {
           };
         }
 
-        // Provider is enabled and validated, navigate smoothly
         window.location.href = data.url;
         return { data, error: null };
       }
@@ -105,8 +131,15 @@ export const authService = {
     }
   },
 
-  // Sign out
+  // Sign out (both Firebase and Supabase)
   async signOut() {
+    try {
+      if (isFirebaseConfigured()) {
+        await fbSignOut(auth);
+      }
+    } catch (err) {
+      console.warn("Firebase signout notice:", err);
+    }
     if (!isSupabaseConfigured()) return { error: null };
     return await supabase.auth.signOut();
   },

@@ -399,7 +399,32 @@ export function useAuth() {
   };
 
   const signInWithGoogle = async () => {
-    return await authService.signInWithGoogle();
+    const res = await authService.signInWithGoogle();
+    if (res?.user) {
+      const email = (res.user.email || "").toLowerCase();
+      const isFounderEmail =
+        email === "zamiulhasan6@gmail.com" ||
+        email === "zamiul.hasan@gmail.com";
+
+      const userRole = isFounderEmail ? "founder" : "member";
+
+      const loggedInUser = {
+        id: isFounderEmail ? 1 : (res.user.id || Date.now()),
+        lovId: isFounderEmail ? "LOV-2026-0001" : `LOV-${String(res.user.id || Date.now()).slice(0, 6).toUpperCase()}`,
+        fullName: isFounderEmail ? "MD Zamiul Hasan" : (res.user.fullName || res.user.displayName || email.split("@")[0]),
+        displayName: isFounderEmail ? "MD Zamiul Hasan" : (res.user.displayName || email.split("@")[0]),
+        username: isFounderEmail ? "ovi" : (res.user.email ? res.user.email.split("@")[0] : "user"),
+        email: res.user.email,
+        avatar: isFounderEmail ? members[0].avatar : (res.user.avatar || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(res.user.email)}`),
+        role: userRole,
+        roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
+      };
+
+      setUser(loggedInUser);
+      saveCurrentUser(loggedInUser);
+      return { success: true, user: loggedInUser };
+    }
+    return res;
   };
 
   const signOut = async () => {
