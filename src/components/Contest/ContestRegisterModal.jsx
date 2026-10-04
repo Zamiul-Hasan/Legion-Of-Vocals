@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   X,
@@ -12,9 +13,13 @@ import {
   ImagePlus,
   Trash2,
   AlertCircle,
+  Lock,
+  LogIn,
+  Clock,
 } from "lucide-react";
 import { useMembers } from "../../hooks/useMembers";
 import { extractHashtags } from "../../hooks/useContests";
+import LoginModal from "../Auth/LoginModal";
 
 const SUGGESTED_TAGS = [
   "#lov_contest_round1",
@@ -30,15 +35,17 @@ function ContestRegisterModal({
   onClose,
   contest,
   activeRound,
+  initialRoundId,
   onSubmitEntry,
 }) {
   const { members, currentUser } = useMembers();
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const [participantType, setParticipantType] = useState("Outsider"); // "LOV Member" | "Outsider"
   const [selectedMemberUsername, setSelectedMemberUsername] = useState(
     currentUser?.username || "ovi"
   );
-  const [roundId, setRoundId] = useState(activeRound?.id || "round-1");
+  const [roundId, setRoundId] = useState(initialRoundId || activeRound?.id || "round-1");
   const [participantName, setParticipantName] = useState("");
   const [lovId, setLovId] = useState("");
   const [email, setEmail] = useState("");
@@ -64,41 +71,55 @@ function ContestRegisterModal({
     contest?.officialHashtag ||
     "#lov_contest_round1";
 
+  const isRoundActive = selectedRoundObj?.status === "Active";
+
   useEffect(() => {
     if (!isOpen) return;
     setSubmittedEntry(null);
     setSubmitError("");
     setUploadedImages([]);
     setImageUrlInput("");
-    const nextRoundId = activeRound?.id || contest?.rounds?.[0]?.id || "round-1";
+
+    const targetR =
+      (initialRoundId && contest?.rounds?.find((r) => r.id === initialRoundId)) ||
+      (activeRound?.status === "Active" ? activeRound : null) ||
+      contest?.rounds?.find((r) => r.status === "Active") ||
+      activeRound ||
+      contest?.rounds?.[0];
+
+    const nextRoundId = targetR?.id || "round-1";
     setRoundId(nextRoundId);
+
     const defaultTag =
-      activeRound?.hashtag || contest?.officialHashtag || "#lov_contest_round1";
+      targetR?.hashtag ||
+      activeRound?.hashtag ||
+      contest?.officialHashtag ||
+      "#lov_contest_round1";
+
     setCaption(
       `Excited to compete in the ${
         contest?.title || "LOV Contest"
       }! Here is my Bangla dub performance 🔥🎙️ ${defaultTag} #lov_corporation #bangla_anime_dub`
     );
-  }, [isOpen, activeRound, contest]);
 
-  useEffect(() => {
-    if (participantType === "LOV Member") {
-      const m =
-        members.find((item) => item.username === selectedMemberUsername) ||
-        currentUser;
-      if (m) {
-        setParticipantName(m.fullName || m.displayName);
-        setLovId(m.lovId || `LOV-2026-00${m.id}`);
-        setEmail(m.email || "");
-        setRoleCategory(m.role || "LOV Voice Actor");
-      }
-    } else {
-      setParticipantName("");
-      setLovId("");
-      setEmail("");
-      setRoleCategory("Challenger (Outsider)");
+    if (currentUser) {
+      const isMemberUser =
+        currentUser.role &&
+        currentUser.role.toLowerCase() !== "outsider" &&
+        currentUser.role.toLowerCase() !== "guest";
+
+      setParticipantType(isMemberUser ? "LOV Member" : "Outsider");
+      setParticipantName(currentUser.fullName || currentUser.displayName || "");
+      setLovId(currentUser.lovId || (isMemberUser ? `LOV-2026-00${currentUser.id}` : ""));
+      setEmail(currentUser.email || "");
+      setSelectedMemberUsername(currentUser.username || "");
+      setRoleCategory(
+        currentUser.roleLabel ||
+        currentUser.role ||
+        (isMemberUser ? "Voice Actor" : "Challenger (Outsider)")
+      );
     }
-  }, [participantType, selectedMemberUsername, members, currentUser]);
+  }, [isOpen, activeRound, contest, initialRoundId, currentUser]);
 
   if (!isOpen || !contest) return null;
 
@@ -151,6 +172,22 @@ function ContestRegisterModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitError("");
+
+    if (!currentUser) {
+      setSubmitError("You must be logged into your account to submit a contest entry.");
+      return;
+    }
+
+    if (!selectedRoundObj || selectedRoundObj.status !== "Active") {
+      setSubmitError(
+        selectedRoundObj?.status === "Completed" ||
+          selectedRoundObj?.status === "Stopped" ||
+          selectedRoundObj?.status === "Ended"
+          ? `Round ${selectedRoundObj?.roundNumber || 1} has stopped / ended. Submissions are closed for this round.`
+          : `Round ${selectedRoundObj?.roundNumber || 1} has not started yet. You cannot compete until an admin starts this round.`
+      );
+      return;
+    }
 
     if (!participantName.trim() || !characterAndAnime.trim()) {
       setSubmitError(
@@ -303,11 +340,78 @@ function ContestRegisterModal({
                 </button>
               </div>
             </div>
+          ) : !currentUser ? (
+            <div className="p-8 sm:p-12 text-center space-y-6">
+              <div className="w-16 h-16 rounded-3xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/20">
+                <Lock size={30} />
+              </div>
+              <div>
+                <h4 className="text-2xl font-black text-white">
+                  Login Required to Compete
+                </h4>
+                <p className="text-gray-300 text-sm max-w-md mx-auto mt-2 leading-relaxed">
+                  Contest registration, voice acting submissions, and round scoring require an authenticated LOV account. Please log in before entering the tournament.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginModalOpen(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-sm shadow-lg shadow-cyan-500/25 transition cursor-pointer"
+                >
+                  <LogIn size={18} />
+                  Log In to Compete
+                </button>
+                <Link
+                  to="/join"
+                  onClick={onClose}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold text-sm transition"
+                >
+                  Create Account (Join LOV)
+                </Link>
+              </div>
+              <LoginModal
+                isOpen={loginModalOpen}
+                onClose={() => setLoginModalOpen(false)}
+              />
+            </div>
           ) : (
             <form
               onSubmit={handleSubmit}
               className="p-6 space-y-5 max-h-[80vh] overflow-y-auto"
             >
+              {/* Authenticated User Status Bar */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-400/40 overflow-hidden shrink-0 flex items-center justify-center text-cyan-300 font-bold text-sm">
+                    {currentUser.avatar ? (
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      currentUser.username?.charAt(0).toUpperCase() || "U"
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-gray-400">
+                      Logged in & Competing as:
+                    </p>
+                    <p className="text-sm font-bold text-white truncate">
+                      {currentUser.fullName || currentUser.displayName}{" "}
+                      <span className="text-cyan-400 font-mono text-xs">
+                        (@{currentUser.username})
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold shrink-0">
+                  {currentUser.role || "Member"}
+                </span>
+              </div>
+
               {submitError && (
                 <div className="p-4 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-sm flex items-center gap-3">
                   <AlertCircle size={20} className="shrink-0 text-red-400" />
@@ -379,9 +483,27 @@ function ContestRegisterModal({
 
               {/* Round Selection */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                  2. Select Contest Round
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                    2. Select Contest Round
+                  </label>
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ${
+                      isRoundActive
+                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                        : selectedRoundObj?.status === "Completed" || selectedRoundObj?.status === "Stopped" || selectedRoundObj?.status === "Ended"
+                        ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                    }`}
+                  >
+                    {isRoundActive
+                      ? "● Round Active (Submissions Open)"
+                      : selectedRoundObj?.status === "Completed" || selectedRoundObj?.status === "Stopped" || selectedRoundObj?.status === "Ended"
+                      ? "✕ Round Stopped / Ended (Closed)"
+                      : "⏳ Round Not Started (Closed)"}
+                  </span>
+                </div>
+
                 <select
                   value={roundId}
                   onChange={(e) => {
@@ -392,15 +514,33 @@ function ContestRegisterModal({
                       handleInsertTag(rObj.hashtag);
                     }
                   }}
-                  className="w-full rounded-xl bg-slate-950 border border-cyan-500/30 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400"
+                  className={`w-full rounded-xl bg-slate-950 border px-4 py-3 text-sm text-white outline-none transition ${
+                    isRoundActive
+                      ? "border-cyan-500/30 focus:border-cyan-400"
+                      : "border-red-500/40 focus:border-red-400"
+                  }`}
                 >
-                  {(contest.rounds || []).map((r) => (
-                    <option key={r.id} value={r.id}>
-                      Round {r.roundNumber}: {r.title} ({r.hashtag}) — [
-                      {r.status}]
-                    </option>
-                  ))}
+                  {(contest.rounds || []).map((r) => {
+                    const rActive = r.status === "Active";
+                    const rEnded = r.status === "Completed" || r.status === "Stopped" || r.status === "Ended";
+                    return (
+                      <option key={r.id} value={r.id}>
+                        {rActive ? "🟢" : rEnded ? "🔴" : "⏳"} Round {r.roundNumber}: {r.title} ({r.hashtag}) — [{rActive ? "ACTIVE" : rEnded ? "STOPPED / ENDED" : "NOT STARTED"}]
+                      </option>
+                    );
+                  })}
                 </select>
+
+                {!isRoundActive && (
+                  <div className="mt-2.5 p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center gap-2.5">
+                    <AlertCircle size={18} className="shrink-0 text-red-400" />
+                    <span>
+                      {selectedRoundObj?.status === "Completed" || selectedRoundObj?.status === "Stopped" || selectedRoundObj?.status === "Ended"
+                        ? `Round ${selectedRoundObj?.roundNumber || 1} has stopped / ended. No new entries can be submitted.`
+                        : `Round ${selectedRoundObj?.roundNumber || 1} has not started yet. You cannot compete until an admin starts this round.`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Participant Details */}
@@ -685,10 +825,19 @@ function ContestRegisterModal({
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm shadow-lg shadow-cyan-500/25 transition cursor-pointer"
+                  disabled={!isRoundActive}
+                  className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-sm shadow-lg transition ${
+                    isRoundActive
+                      ? "bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 shadow-cyan-500/25 cursor-pointer"
+                      : "bg-slate-800 text-gray-500 border border-slate-700/80 cursor-not-allowed"
+                  }`}
                 >
                   <Sparkles size={16} />
-                  Register & Publish Entry
+                  {isRoundActive
+                    ? "Register & Publish Entry"
+                    : selectedRoundObj?.status === "Completed" || selectedRoundObj?.status === "Stopped" || selectedRoundObj?.status === "Ended"
+                    ? "Round Ended (Closed)"
+                    : "Round Not Started (Closed)"}
                 </button>
               </div>
             </form>

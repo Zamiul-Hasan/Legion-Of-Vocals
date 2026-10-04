@@ -70,6 +70,22 @@ export const contestService = {
     return { data, error };
   },
 
+  // Update round status (Active, Upcoming, Completed)
+  async updateRoundStatus(roundId, status) {
+    if (!isSupabaseConfigured() || !roundId) return null;
+    try {
+      const { data, error } = await supabase
+        .from("contest_rounds")
+        .update({ status })
+        .eq("id", roundId)
+        .select()
+        .single();
+      return { data, error };
+    } catch {
+      return null;
+    }
+  },
+
   // Real-time subscription to contest updates
   subscribeToContest(contestId, onUpdate) {
     if (!isSupabaseConfigured()) return () => {};
@@ -83,3 +99,4 @@ export const contestService = {
     return () => supabase.removeChannel(channel);
   },
 };
+

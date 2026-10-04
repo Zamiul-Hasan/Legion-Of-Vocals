@@ -27,6 +27,9 @@ function AdminContests() {
     updateContestBanner,
     addRound,
     setActiveRound,
+    startRound,
+    stopRound,
+    setRoundStatus,
     deleteRound,
     launchNewContest,
     registerAndSubmitEntry,
@@ -223,13 +226,22 @@ function AdminContests() {
 
           <div className="grid md:grid-cols-3 gap-4">
             {(activeContest?.rounds || []).map((round) => {
-              const isCurrent = round.id === activeContest?.activeRoundId;
+              const isRunning = round.status === "Active";
+              const isEnded =
+                round.status === "Completed" ||
+                round.status === "Stopped" ||
+                round.status === "Ended";
+              const isUpcoming =
+                round.status === "Upcoming" || round.status === "Not Started";
+
               return (
                 <div
                   key={round.id}
                   className={`p-5 rounded-2xl border flex flex-col justify-between ${
-                    isCurrent
-                      ? "bg-cyan-500/10 border-cyan-400"
+                    isRunning
+                      ? "bg-gradient-to-b from-cyan-950/60 to-slate-900 border-cyan-400/80 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                      : isEnded
+                      ? "bg-slate-950/80 border-red-500/30"
                       : "bg-slate-950 border-slate-800"
                   }`}
                 >
@@ -242,31 +254,55 @@ function AdminContests() {
                         {round.hashtag}
                       </span>
                     </div>
+
                     <h4 className="font-bold text-white mt-2">{round.title}</h4>
                     <p className="text-xs text-gray-400 mt-1">
                       {round.description}
                     </p>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
+                          isRunning
+                            ? "bg-green-500/20 text-green-300 border border-green-500/40"
+                            : isEnded
+                            ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                            : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        }`}
+                      >
+                        {isRunning
+                          ? "● Active (Accepting Entries)"
+                          : isEnded
+                          ? "✕ Stopped / Ended (Closed)"
+                          : "⏳ Upcoming (Not Started)"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                  <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
                     <span className="text-xs text-gray-400">
                       Due: {round.deadline}
                     </span>
-                    {isCurrent ? (
-                      <span className="px-3 py-1 rounded-lg bg-cyan-500 text-slate-950 font-black text-xs">
-                        ACTIVE
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveRound(activeContest.id, round.id)
-                        }
-                        className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 text-xs font-bold transition cursor-pointer"
-                      >
-                        Activate Round
-                      </button>
-                    )}
+
+                    <div className="flex items-center gap-2">
+                      {isRunning ? (
+                        <button
+                          type="button"
+                          onClick={() => stopRound(activeContest.id, round.id)}
+                          className="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold transition cursor-pointer"
+                        >
+                          ⏹ Stop Round
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startRound(activeContest.id, round.id)}
+                          className="px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500 text-green-300 hover:text-slate-950 border border-green-500/40 text-xs font-bold transition cursor-pointer"
+                        >
+                          ▶ Start Round
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -427,6 +463,9 @@ function AdminContests() {
         onUpdateBanner={updateContestBanner}
         onAddRound={addRound}
         onSetActiveRound={setActiveRound}
+        onStartRound={startRound}
+        onStopRound={stopRound}
+        onSetRoundStatus={setRoundStatus}
         onDeleteRound={deleteRound}
         onLaunchNewContest={launchNewContest}
       />

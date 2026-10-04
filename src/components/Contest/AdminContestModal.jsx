@@ -11,6 +11,9 @@ import {
   Layers,
   Rocket,
   Eye,
+  Play,
+  Square,
+  AlertCircle,
 } from "lucide-react";
 import { CONTEST_BANNER_PRESETS } from "../../hooks/useContests";
 
@@ -23,6 +26,9 @@ function AdminContestModal({
   onSetActiveRound,
   onDeleteRound,
   onLaunchNewContest,
+  onStartRound,
+  onStopRound,
+  onSetRoundStatus,
 }) {
   const [tab, setTab] = useState("banner"); // "banner" | "rounds" | "launch"
 
@@ -375,17 +381,26 @@ function AdminContestModal({
                 </h4>
                 <div className="space-y-3">
                   {(activeContest.rounds || []).map((round) => {
-                    const isActive = round.id === activeContest.activeRoundId;
+                    const isRunning = round.status === "Active";
+                    const isEnded =
+                      round.status === "Completed" ||
+                      round.status === "Stopped" ||
+                      round.status === "Ended";
+                    const isUpcoming =
+                      round.status === "Upcoming" || round.status === "Not Started";
+
                     return (
                       <div
                         key={round.id}
-                        className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                          isActive
-                            ? "bg-cyan-500/10 border-cyan-400"
+                        className={`p-4 rounded-2xl border flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${
+                          isRunning
+                            ? "bg-gradient-to-r from-cyan-950/60 to-slate-900 border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+                            : isEnded
+                            ? "bg-slate-950/80 border-red-500/30"
                             : "bg-slate-950 border-slate-800"
                         }`}
                       >
-                        <div>
+                        <div className="space-y-1.5">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-cyan-300 text-xs font-bold">
                               Round {round.roundNumber}
@@ -396,28 +411,71 @@ function AdminContestModal({
                             <span className="px-2.5 py-0.5 rounded-full bg-[#1877F2]/20 text-[#65A9FF] font-mono text-xs font-bold">
                               {round.hashtag}
                             </span>
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
+                                isRunning
+                                  ? "bg-green-500/20 text-green-300 border border-green-500/40"
+                                  : isEnded
+                                  ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                                  : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                              }`}
+                            >
+                              {isRunning
+                                ? "● Active (Open)"
+                                : isEnded
+                                ? "✕ Stopped / Ended (Closed)"
+                                : "⏳ Upcoming (Not Started)"}
+                            </span>
                           </div>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-400">
                             {round.description} • Deadline: {round.deadline}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          {isActive ? (
-                            <span className="px-3 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-black text-xs">
-                              ACTIVE ROUND
-                            </span>
+                        {/* Admin Action Buttons: Start Round / Stop Round */}
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          {isRunning ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onStopRound) onStopRound(activeContest.id, round.id);
+                                else if (onSetRoundStatus) onSetRoundStatus(activeContest.id, round.id, "Completed");
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold transition cursor-pointer shadow-sm"
+                            >
+                              <Square size={13} />
+                              Stop / End Round
+                            </button>
                           ) : (
                             <button
                               type="button"
-                              onClick={() =>
-                                onSetActiveRound(activeContest.id, round.id)
-                              }
-                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 text-xs font-bold transition cursor-pointer"
+                              onClick={() => {
+                                if (onStartRound) onStartRound(activeContest.id, round.id);
+                                else if (onSetRoundStatus) onSetRoundStatus(activeContest.id, round.id, "Active");
+                                else if (onSetActiveRound) onSetActiveRound(activeContest.id, round.id);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-green-500/20 hover:bg-green-500 text-green-300 hover:text-slate-950 border border-green-500/40 text-xs font-bold transition cursor-pointer shadow-sm"
                             >
-                              Set Active
+                              <Play size={13} />
+                              Start Round
                             </button>
                           )}
+
+                          {/* Quick Status Select */}
+                          <select
+                            value={round.status || "Upcoming"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (onSetRoundStatus) onSetRoundStatus(activeContest.id, round.id, val);
+                              else if (val === "Active" && onStartRound) onStartRound(activeContest.id, round.id);
+                              else if ((val === "Completed" || val === "Stopped") && onStopRound) onStopRound(activeContest.id, round.id);
+                            }}
+                            className="bg-slate-900 border border-slate-700 text-gray-300 text-xs font-semibold rounded-xl px-2.5 py-1.5 outline-none focus:border-cyan-400"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Upcoming">Upcoming</option>
+                            <option value="Completed">Completed</option>
+                          </select>
 
                           {(activeContest.rounds?.length || 0) > 1 && (
                             <button

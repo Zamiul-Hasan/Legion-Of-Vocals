@@ -58,6 +58,12 @@ function ContestLaunchBanner({
   const currentHashtag =
     activeRound?.hashtag || activeContest.officialHashtag || "#lov_contest_round1";
 
+  const isCurrentRoundActive = activeRound?.status === "Active";
+  const isCurrentRoundEnded =
+    activeRound?.status === "Completed" ||
+    activeRound?.status === "Stopped" ||
+    activeRound?.status === "Ended";
+
   const handleCopyTag = () => {
     navigator.clipboard.writeText(currentHashtag);
     setCopiedTag(true);
@@ -259,10 +265,19 @@ function ContestLaunchBanner({
                     <button
                       type="button"
                       onClick={onOpenRegister}
-                      className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm shadow-lg shadow-cyan-500/30 transition cursor-pointer"
+                      disabled={!isCurrentRoundActive}
+                      className={`inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm shadow-lg transition ${
+                        isCurrentRoundActive
+                          ? "bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 shadow-cyan-500/30 cursor-pointer"
+                          : "bg-slate-800 text-gray-500 border border-slate-700/80 cursor-not-allowed shadow-none"
+                      }`}
                     >
                       <UserPlus size={18} />
-                      Register to Compete (Member / Outsider)
+                      {isCurrentRoundActive
+                        ? "Register to Compete (Member / Outsider)"
+                        : isCurrentRoundEnded
+                        ? "Round Ended (Submissions Closed)"
+                        : "Round Not Started"}
                     </button>
                     <a
                       href="https://www.facebook.com/share/g/19MxBAkZsX/"

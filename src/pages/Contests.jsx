@@ -20,6 +20,9 @@ import {
   Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
+  Lock,
+  Square,
+  LogIn,
 } from "lucide-react";
 import Navbar from "../components/Navbar/Navbar";
 import Footer from "../components/Footer/Footer";
@@ -32,6 +35,7 @@ import ContestRegisterModal from "../components/Contest/ContestRegisterModal";
 import AdminContestModal from "../components/Contest/AdminContestModal";
 import ContestLeaderboardSection from "../components/Contest/ContestLeaderboardSection";
 import AdminRoundScoringModal from "../components/Contest/AdminRoundScoringModal";
+import LoginModal from "../components/Auth/LoginModal";
 import { useContests, getEntryPointsSummary } from "../hooks/useContests";
 import { useAuth } from "../hooks/useAuth";
 
@@ -43,6 +47,9 @@ function Contests() {
     updateContestBanner,
     addRound,
     setActiveRound,
+    startRound,
+    stopRound,
+    setRoundStatus,
     deleteRound,
     launchNewContest,
     registerAndSubmitEntry,
@@ -50,10 +57,29 @@ function Contests() {
     updateEntryStatus,
     awardRoundPoints,
   } = useContests();
-  const { canManageProjects } = useAuth();
+  const { isAuthenticated, canManageProjects } = useAuth();
 
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [loginModalOpen, setLoginOpen] = useState(false);
+  const [selectedRoundForCompete, setSelectedRoundForCompete] = useState(null);
+
+  const handleOpenCompete = (targetRoundId = null) => {
+    if (!isAuthenticated) {
+      setLoginOpen(true);
+      return;
+    }
+    if (targetRoundId) {
+      const r = activeContest?.rounds?.find((item) => item.id === targetRoundId);
+      if (r && r.status !== "Active") {
+        return;
+      }
+      setSelectedRoundForCompete(targetRoundId);
+    } else {
+      setSelectedRoundForCompete(null);
+    }
+    setRegisterModalOpen(true);
+  };
   const [selectedHashtag, setSelectedHashtag] = useState(
     searchParams.get("tag") || "ALL"
   );
@@ -164,7 +190,7 @@ function Contests() {
 
               <button
                 type="button"
-                onClick={() => setRegisterModalOpen(true)}
+                onClick={() => handleOpenCompete()}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition cursor-pointer"
               >
                 <UserPlus size={16} />
@@ -177,7 +203,7 @@ function Contests() {
         {/* Active Contest Custom Banner & Caption */}
         <ContestLaunchBanner
           isCompactHome={false}
-          onOpenRegister={() => setRegisterModalOpen(true)}
+          onOpenRegister={() => handleOpenCompete()}
           onSelectHashtag={handleSelectHashtag}
           onOpenAdminEditor={() => setAdminModalOpen(true)}
         />
@@ -217,7 +243,14 @@ function Contests() {
 
             <div className="grid md:grid-cols-3 gap-6">
               {(activeContest?.rounds || []).map((round) => {
-                const isCurrent = round.id === activeRound?.id;
+                const isRunning = round.status === "Active";
+                const isEnded =
+                  round.status === "Completed" ||
+                  round.status === "Stopped" ||
+                  round.status === "Ended";
+                const isUpcoming =
+                  round.status === "Upcoming" || round.status === "Not Started";
+
                 const roundEntriesCount = (
                   activeContest?.entries || []
                 ).filter((e) => e.roundId === round.id).length;
@@ -226,24 +259,30 @@ function Contests() {
                   <div
                     key={round.id}
                     className={`rounded-3xl p-6 border transition flex flex-col justify-between ${
-                      isCurrent
+                      isRunning
                         ? "bg-gradient-to-b from-cyan-950/50 to-slate-900 border-2 border-cyan-400 shadow-[0_0_35px_rgba(6,182,212,0.18)]"
+                        : isEnded
+                        ? "bg-slate-900/80 border-red-500/25"
                         : "bg-slate-900 border-cyan-500/20 hover:border-cyan-500/40"
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-4">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                            isCurrent
-                              ? "bg-cyan-400 text-slate-950"
-                              : round.status === "Completed"
-                              ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                              : "bg-slate-800 text-gray-300"
+                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                            isRunning
+                              ? "bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20"
+                              : isEnded
+                              ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                              : "bg-slate-800 text-gray-300 border border-slate-700"
                           }`}
                         >
                           Round {round.roundNumber} •{" "}
-                          {isCurrent ? "Active Now" : round.status}
+                          {isRunning
+                            ? "Active Now"
+                            : isEnded
+                            ? "Ended (Closed)"
+                            : "Not Started (Closed)"}
                         </span>
 
                         <span className="text-xs text-gray-400">
@@ -274,12 +313,12 @@ function Contests() {
                       </div>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between gap-2">
+                    <div className="mt-6 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs text-gray-400 font-semibold">
                         {roundEntriesCount} Submissions
                       </span>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => {
@@ -295,13 +334,60 @@ function Contests() {
                           Filter Tag
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setRegisterModalOpen(true)}
-                          className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black transition cursor-pointer"
-                        >
-                          Compete
-                        </button>
+                        {/* Admin Start / Stop round control */}
+                        {canManageProjects && (
+                          isRunning ? (
+                            <button
+                              type="button"
+                              onClick={() => stopRound(activeContest.id, round.id)}
+                              className="px-2.5 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold transition cursor-pointer"
+                              title="Stop / End this round"
+                            >
+                              <Square size={12} className="inline mr-1" />
+                              Stop Round
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => startRound(activeContest.id, round.id)}
+                              className="px-2.5 py-1.5 rounded-xl bg-green-500/20 hover:bg-green-500 text-green-300 hover:text-slate-950 border border-green-500/40 text-xs font-bold transition cursor-pointer"
+                              title="Start this round"
+                            >
+                              ▶ Start Round
+                            </button>
+                          )
+                        )}
+
+                        {/* Compete Button: ONLY active when round is Active */}
+                        {isRunning ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCompete(round.id)}
+                            className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black transition cursor-pointer shadow-md shadow-cyan-500/25"
+                          >
+                            Compete
+                          </button>
+                        ) : isEnded ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 text-gray-500 border border-slate-700/60 text-xs font-bold flex items-center gap-1 cursor-not-allowed"
+                            title="Round has ended. Submissions are closed."
+                          >
+                            <Lock size={12} />
+                            Ended
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 text-gray-500 border border-slate-700/60 text-xs font-bold flex items-center gap-1 cursor-not-allowed"
+                            title="Round has not started yet."
+                          >
+                            <Lock size={12} />
+                            Not Started
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -917,9 +1003,13 @@ function Contests() {
       {/* Competitor Registration Modal (Members & Outsiders) */}
       <ContestRegisterModal
         isOpen={registerModalOpen}
-        onClose={() => setRegisterModalOpen(false)}
+        onClose={() => {
+          setRegisterModalOpen(false);
+          setSelectedRoundForCompete(null);
+        }}
         contest={activeContest}
         activeRound={activeRound}
+        initialRoundId={selectedRoundForCompete}
         onSubmitEntry={registerAndSubmitEntry}
       />
 
@@ -933,6 +1023,9 @@ function Contests() {
         onSetActiveRound={setActiveRound}
         onDeleteRound={deleteRound}
         onLaunchNewContest={launchNewContest}
+        onStartRound={startRound}
+        onStopRound={stopRound}
+        onSetRoundStatus={setRoundStatus}
       />
 
       {/* Admin Round Judge Scorecard Modal */}
@@ -943,6 +1036,12 @@ function Contests() {
         entry={scoringEntry}
         initialRoundId={activeRound?.id}
         onSaveRoundScore={awardRoundPoints}
+      />
+
+      {/* Login Modal for Guest attempting to Compete */}
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginOpen(false)}
       />
 
       <Footer />

@@ -357,6 +357,90 @@ export function useContests() {
     setContests(updated);
   }, []);
 
+  // Start a round (marks Active, advances active round, updates official hashtag)
+  const startRound = useCallback((contestId, roundId) => {
+    const current = loadContests();
+    const updated = current.map((contest) => {
+      if (Number(contest.id) !== Number(contestId)) return contest;
+      let nextHashtag = contest.officialHashtag;
+      const updatedRounds = (contest.rounds || []).map((r) => {
+        if (r.id === roundId) {
+          nextHashtag = r.hashtag;
+          return { ...r, status: "Active" };
+        }
+        return r;
+      });
+      return {
+        ...contest,
+        activeRoundId: roundId,
+        officialHashtag: nextHashtag,
+        rounds: updatedRounds,
+      };
+    });
+    saveContests(updated);
+    setContests(updated);
+    contestService.updateRoundStatus(roundId, "Active");
+  }, []);
+
+  // Stop / End a round (marks Completed / Stopped, closing submissions)
+  const stopRound = useCallback((contestId, roundId) => {
+    const current = loadContests();
+    const updated = current.map((contest) => {
+      if (Number(contest.id) !== Number(contestId)) return contest;
+      const updatedRounds = (contest.rounds || []).map((r) => {
+        if (r.id === roundId) {
+          return { ...r, status: "Completed" };
+        }
+        return r;
+      });
+      let nextActiveId = contest.activeRoundId;
+      let nextHashtag = contest.officialHashtag;
+      if (contest.activeRoundId === roundId) {
+        const otherActive = updatedRounds.find((r) => r.status === "Active");
+        if (otherActive) {
+          nextActiveId = otherActive.id;
+          nextHashtag = otherActive.hashtag;
+        }
+      }
+      return {
+        ...contest,
+        activeRoundId: nextActiveId,
+        officialHashtag: nextHashtag,
+        rounds: updatedRounds,
+      };
+    });
+    saveContests(updated);
+    setContests(updated);
+    contestService.updateRoundStatus(roundId, "Completed");
+  }, []);
+
+  // Set specific round status (Active, Upcoming, Completed)
+  const setRoundStatus = useCallback(
+    (contestId, roundId, newStatus) => {
+      if (newStatus === "Active") {
+        startRound(contestId, roundId);
+      } else if (newStatus === "Completed" || newStatus === "Stopped") {
+        stopRound(contestId, roundId);
+      } else {
+        const current = loadContests();
+        const updated = current.map((contest) => {
+          if (Number(contest.id) !== Number(contestId)) return contest;
+          const updatedRounds = (contest.rounds || []).map((r) =>
+            r.id === roundId ? { ...r, status: newStatus } : r
+          );
+          return {
+            ...contest,
+            rounds: updatedRounds,
+          };
+        });
+        saveContests(updated);
+        setContests(updated);
+        contestService.updateRoundStatus(roundId, newStatus);
+      }
+    },
+    [startRound, stopRound]
+  );
+
   // Switch active round
   const setActiveRound = useCallback((contestId, roundId) => {
     const current = loadContests();
@@ -368,7 +452,7 @@ export function useContests() {
           nextHashtag = r.hashtag;
           return { ...r, status: "Active" };
         }
-        return r.status === "Active" ? { ...r, status: "Completed" } : r;
+        return r;
       });
       return {
         ...contest,
@@ -413,6 +497,37 @@ export function useContests() {
         contest.rounds?.find((r) => r.id === entryData.roundId) ||
         contest.rounds?.find((r) => r.id === contest.activeRoundId) ||
         contest.rounds?.[0];
+
+      if (!targetRound) {
+        throw new Error("Target contest round could not be found.");
+      }
+
+      // STRICT ROUND STATUS VERIFICATION:
+      // If round is stopped/ended, or not started/upcoming, NO ONE can compete!
+      if (
+        targetRound.status === "Completed" ||
+        targetRound.status === "Stopped" ||
+        targetRound.status === "Ended"
+      ) {
+        throw new Error(
+          `Round ${targetRound.roundNumber} (${targetRound.title}) has stopped / ended. Submissions are closed for this round.`
+        );
+      }
+
+      if (
+        targetRound.status === "Upcoming" ||
+        targetRound.status === "Not Started"
+      ) {
+        throw new Error(
+          `Round ${targetRound.roundNumber} (${targetRound.title}) has not started yet. You can only compete once an admin starts this round.`
+        );
+      }
+
+      if (targetRound.status !== "Active") {
+        throw new Error(
+          `Round ${targetRound.roundNumber} is not currently active for competing.`
+        );
+      }
 
       const roundTag =
         targetRound?.hashtag || contest.officialHashtag || "#lov_contest_round1";
@@ -644,6 +759,9 @@ export function useContests() {
     updateContestBanner,
     addRound,
     setActiveRound,
+    startRound,
+    stopRound,
+    setRoundStatus,
     deleteRound,
     registerAndSubmitEntry,
     voteEntry,
