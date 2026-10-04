@@ -11,9 +11,9 @@ const DUMMY_PENDING_NAMES = ["tanvir hasan", "arafat islam", "sakib ahmed"];
 function isRealPendingUser(user) {
   if (!user) return false;
   const idMatch = user.id != null && DUMMY_PENDING_IDS.includes(String(user.id).toLowerCase());
-  const lovMatch = user.lovId && DUMMY_PENDING_IDS.includes(user.lovId.toLowerCase());
-  const emailMatch = user.email && DUMMY_PENDING_EMAILS.includes(user.email.toLowerCase());
-  const nameMatch = user.fullName && DUMMY_PENDING_NAMES.includes(user.fullName.toLowerCase());
+  const lovMatch = user.lovId && DUMMY_PENDING_IDS.includes(String(user.lovId).toLowerCase());
+  const emailMatch = user.email && DUMMY_PENDING_EMAILS.includes(String(user.email).toLowerCase());
+  const nameMatch = user.fullName && DUMMY_PENDING_NAMES.includes(String(user.fullName).toLowerCase());
   return !(idMatch || lovMatch || emailMatch || nameMatch);
 }
 

@@ -62,11 +62,14 @@ export default function FloatingMessenger() {
   }, [markThreadRead]);
 
   const activeContact =
-    contacts.find(
-      (c) => c.username.toLowerCase() === activeUsername.toLowerCase()
-    ) ||
-    contacts[1] ||
-    contacts[0];
+    (contacts && contacts.length > 0)
+      ? contacts.find(
+          (c) =>
+            c?.username &&
+            String(c.username).toLowerCase() === String(activeUsername || "").toLowerCase()
+        ) ||
+        contacts[0]
+      : null;
 
   useEffect(() => {
     if (isOpen && !isMinimized && viewMode === "chat") {
@@ -84,6 +87,7 @@ export default function FloatingMessenger() {
   if (location.pathname === "/messages") return null;
 
   const handleSelectContact = (username) => {
+    if (!username) return;
     setActiveUsername(username);
     setViewMode("chat");
     markThreadRead(username);
@@ -91,19 +95,20 @@ export default function FloatingMessenger() {
 
   const handleSend = (e) => {
     e?.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !activeContact) return;
     sendMessage(activeContact.username, inputText);
     setInputText("");
     setShowEmojiBar(false);
   };
 
   const handleQuickThumb = () => {
+    if (!activeContact) return;
     sendMessage(activeContact.username, "👍");
   };
 
   const handleAttachment = (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !activeContact) return;
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -125,17 +130,20 @@ export default function FloatingMessenger() {
   };
 
   const triggerCallToast = (type) => {
-    setCallStatus(`Starting ${type} with ${activeContact.displayName}...`);
+    if (!activeContact) return;
+    setCallStatus(`Starting ${type} with ${activeContact.displayName || "Member"}...`);
     setTimeout(() => setCallStatus(""), 3000);
   };
 
-  const filteredContacts = contacts.filter(
-    (c) =>
-      c.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      c.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      c.username.toLowerCase().includes(search.toLowerCase()) ||
-      (c.lovId && c.lovId.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredContacts = (contacts || []).filter((c) => {
+    if (!c) return false;
+    const q = (search || "").toLowerCase();
+    const dName = String(c.displayName || "").toLowerCase();
+    const fName = String(c.fullName || "").toLowerCase();
+    const uName = String(c.username || "").toLowerCase();
+    const lId = String(c.lovId || "").toLowerCase();
+    return dName.includes(q) || fName.includes(q) || uName.includes(q) || lId.includes(q);
+  });
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
@@ -160,7 +168,7 @@ export default function FloatingMessenger() {
           </div>
           <span className="text-sm font-extrabold hidden sm:inline">
             {isMinimized
-              ? `Chat: ${activeContact?.displayName}`
+              ? `Chat: ${activeContact?.displayName || "Member"}`
               : "LOV Messenger"}
           </span>
         </button>

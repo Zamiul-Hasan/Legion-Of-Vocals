@@ -4,22 +4,22 @@ function ProfileStats({ member }) {
   const stats = [
     {
       title: "Projects",
-      value: member.stats.projects,
+      value: member?.stats?.projects ?? 0,
       icon: FolderKanban,
     },
     {
       title: "Dub Videos",
-      value: member.stats.dubVideos,
+      value: member?.stats?.dubVideos ?? 0,
       icon: Video,
     },
     {
       title: "Points",
-      value: member.stats.points,
+      value: member?.stats?.points ?? member?.points ?? 100,
       icon: Star,
     },
     {
       title: "Followers",
-      value: member.stats.followers,
+      value: member?.stats?.followers ?? 0,
       icon: Users,
     },
   ];

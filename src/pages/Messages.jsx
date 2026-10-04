@@ -55,17 +55,21 @@ export default function Messages() {
   }, [searchParams]);
 
   const activeContact =
-    contacts.find(
-      (c) => c.username.toLowerCase() === activeUsername.toLowerCase()
-    ) ||
-    contacts[1] ||
-    contacts[0];
+    (contacts && contacts.length > 0)
+      ? contacts.find(
+          (c) =>
+            c?.username &&
+            String(c.username).toLowerCase() === String(activeUsername || "").toLowerCase()
+        ) ||
+        contacts[0]
+      : null;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeContact?.messages?.length, typingUser, activeUsername]);
 
   const handleSelectContact = (username) => {
+    if (!username) return;
     setActiveUsername(username);
     markThreadRead(username);
   };
@@ -100,13 +104,15 @@ export default function Messages() {
     }
   };
 
-  const filteredContacts = contacts.filter(
-    (c) =>
-      c.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      c.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      c.username.toLowerCase().includes(search.toLowerCase()) ||
-      (c.lovId && c.lovId.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredContacts = (contacts || []).filter((c) => {
+    if (!c) return false;
+    const q = (search || "").toLowerCase();
+    const dName = String(c.displayName || "").toLowerCase();
+    const fName = String(c.fullName || "").toLowerCase();
+    const uName = String(c.username || "").toLowerCase();
+    const lId = String(c.lovId || "").toLowerCase();
+    return dName.includes(q) || fName.includes(q) || uName.includes(q) || lId.includes(q);
+  });
 
   return (
     <DashboardLayout>

@@ -66,32 +66,56 @@ export function useMessenger() {
   }, []);
 
   const authUser = loadCurrentUser();
-  const myUsername = authUser?.username?.toLowerCase();
+  const myUsername = authUser?.username ? String(authUser.username).toLowerCase() : "";
 
   // Build contacts list directly from registered studio members, excluding myself
-  const allMembers = loadMembers();
+  const allMembers = loadMembers() || [];
   let availableMembers = allMembers.filter(
-    (m) => m.username && m.username.toLowerCase() !== myUsername
+    (m) => m && m.username && String(m.username).toLowerCase() !== myUsername
   );
 
   // If user is someone else and Founder is not in availableMembers, ensure Founder is in contacts
-  if (myUsername !== "ovi" && !availableMembers.some((m) => m.username === "ovi")) {
-    const founder = allMembers.find((m) => m.username === "ovi");
+  if (myUsername !== "ovi" && !availableMembers.some((m) => m && m.username === "ovi")) {
+    const founder = allMembers.find((m) => m && m.username === "ovi");
     if (founder) availableMembers.unshift(founder);
   }
 
+  // Guarantee contacts is never empty so chat widgets never throw on activeContact
+  if (availableMembers.length === 0) {
+    availableMembers.push({
+      id: "lov-support",
+      username: "lov_studio",
+      displayName: "LOV Studio Team",
+      fullName: "LOV Studio Support",
+      lovId: "LOV-SYSTEM",
+      role: "Studio Support",
+      department: "Management",
+      avatar: "https://api.dicebear.com/9.x/bottts/svg?seed=lovstudio",
+    });
+  }
+
   const contacts = availableMembers.map((member, idx) => {
-    const thread = threads[member.username] || { unread: 0, messages: [] };
+    const safeUsername = member.username ? String(member.username) : `user_${idx}`;
+    const safeDisplayName = member.displayName || member.fullName || safeUsername || "Studio Member";
+    const safeFullName = member.fullName || member.displayName || safeUsername || "Studio Member";
+    const safeLovId = member.lovId ? String(member.lovId) : "LOV-MEMBER";
+    const thread = threads[safeUsername] || { unread: 0, messages: [] };
     const lastMsg =
       thread.messages && thread.messages.length > 0
         ? thread.messages[thread.messages.length - 1]
         : null;
     return {
       ...member,
+      id: member.id || safeUsername,
+      username: safeUsername,
+      displayName: safeDisplayName,
+      fullName: safeFullName,
+      lovId: safeLovId,
+      avatar: member.avatar || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(safeUsername)}`,
       online: idx === 0,
       unread: thread.unread || 0,
       lastMessage: lastMsg,
-      messages: thread.messages || [],
+      messages: Array.isArray(thread.messages) ? thread.messages : [],
     };
   });
 

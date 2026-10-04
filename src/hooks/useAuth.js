@@ -56,6 +56,24 @@ export function loadCurrentUser() {
           parsed.avatar = members[0].avatar;
         }
 
+        parsed.achievements =
+          Array.isArray(parsed.achievements) && parsed.achievements.length > 0
+            ? parsed.achievements
+            : isFounderUser
+            ? ["Founder", "Studio Lead", "Verified Member"]
+            : ["Verified Member", "Anime Voice Artist"];
+        parsed.skills =
+          Array.isArray(parsed.skills) && parsed.skills.length > 0
+            ? parsed.skills
+            : ["Voice Acting"];
+        parsed.stats = parsed.stats || {
+          projects: 0,
+          dubVideos: 0,
+          points: 100,
+          followers: 0,
+        };
+        parsed.level = parsed.level || 1;
+
         return parsed;
       }
     }
@@ -135,6 +153,10 @@ export function useAuth() {
           avatar: isFounderEmail ? members[0].avatar : (res.user.avatar || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(res.user.email)}`),
           role: isFounderEmail ? "founder" : "member",
           roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
+          achievements: isFounderEmail ? ["Founder", "Studio Lead", "Verified Member"] : ["Verified Member", "Anime Voice Artist"],
+          skills: isFounderEmail ? ["Voice Acting", "Direction", "Project Management"] : ["Voice Acting"],
+          stats: { projects: 0, dubVideos: 0, points: 100, followers: 0 },
+          level: 1,
         };
 
         setUser(loggedInUser);
@@ -162,6 +184,10 @@ export function useAuth() {
             avatar: su.user_metadata?.avatar_url,
             role: isFounderEmail ? "founder" : (su.user_metadata?.role || "member"),
             roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
+            achievements: isFounderEmail ? ["Founder", "Studio Lead", "Verified Member"] : ["Verified Member", "Anime Voice Artist"],
+            skills: isFounderEmail ? ["Voice Acting", "Direction", "Project Management"] : ["Voice Acting"],
+            stats: { projects: 0, dubVideos: 0, points: 100, followers: 0 },
+            level: 1,
           };
           setUser(googleUser);
           saveCurrentUser(googleUser);
@@ -186,6 +212,10 @@ export function useAuth() {
             avatar: su.user_metadata?.avatar_url,
             role: isFounderEmail ? "founder" : (su.user_metadata?.role || "member"),
             roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
+            achievements: isFounderEmail ? ["Founder", "Studio Lead", "Verified Member"] : ["Verified Member", "Anime Voice Artist"],
+            skills: isFounderEmail ? ["Voice Acting", "Direction", "Project Management"] : ["Voice Acting"],
+            stats: { projects: 0, dubVideos: 0, points: 100, followers: 0 },
+            level: 1,
           };
           setUser(googleUser);
           saveCurrentUser(googleUser);
@@ -443,6 +473,10 @@ export function useAuth() {
         avatar: isFounderEmail ? members[0].avatar : (res.user.avatar || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(res.user.email)}`),
         role: userRole,
         roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
+        achievements: isFounderEmail ? ["Founder", "Studio Lead", "Verified Member"] : ["Verified Member", "Anime Voice Artist"],
+        skills: isFounderEmail ? ["Voice Acting", "Direction", "Project Management"] : ["Voice Acting"],
+        stats: { projects: 0, dubVideos: 0, points: 100, followers: 0 },
+        level: 1,
       };
 
       setUser(loggedInUser);
@@ -463,13 +497,15 @@ export function useAuth() {
   };
 
   const roleLower = (user?.role || "").toLowerCase();
+  const isAdminUser = roleLower === "admin" || roleLower === "founder";
 
   return {
     user,
     isAuthenticated: Boolean(user),
     isFounder: roleLower === "founder",
-    isAdmin: roleLower === "admin" || roleLower === "founder",
-    isMember: Boolean(user) && roleLower !== "admin" && roleLower !== "founder",
+    isAdmin: isAdminUser,
+    canManageProjects: isAdminUser,
+    isMember: Boolean(user) && !isAdminUser,
     login,
     updateRole,
     signInWithGoogle,

@@ -25,8 +25,14 @@ function DashboardOverview() {
   const userStats = user?.stats || {
     projects: 0,
     dubVideos: 0,
-    points: user?.points || 0,
+    points: user?.points || 100,
   };
+  const userAchievements =
+    Array.isArray(user?.achievements) && user.achievements.length > 0
+      ? user.achievements
+      : user?.role === "founder"
+      ? ["Founder", "Studio Lead", "Verified Member"]
+      : ["Verified Member", "Anime Voice Artist"];
 
   const statusBadge = (status) => {
     switch (status) {
@@ -231,7 +237,7 @@ function DashboardOverview() {
               Earned Badges
             </h2>
             <div className="flex flex-wrap gap-2">
-              {user.achievements.map((badge) => (
+              {userAchievements.map((badge) => (
                 <span
                   key={badge}
                   className="px-3.5 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold"

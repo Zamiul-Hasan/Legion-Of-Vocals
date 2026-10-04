@@ -13,17 +13,26 @@ import {
   Trash2,
   Camera,
   MessageCircle,
+  Menu,
+  X,
+  LayoutDashboard,
+  Users,
+  LogOut,
+  Shield,
+  User as UserIcon,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMembers } from "../../hooks/useMembers";
 import { useNotifications } from "../../data/notifications";
 import { useMessenger } from "../../hooks/useMessenger";
+import useAuth from "../../hooks/useAuth";
 import BackButton from "../UI/BackButton";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
 
 function DashboardTopbar() {
   const { currentUser, updateMemberAvatar } = useMembers();
+  const { isAdmin, isFounder, signOut } = useAuth();
   const user = currentUser || {
     id: 1,
     displayName: "Member",
@@ -35,6 +44,7 @@ function DashboardTopbar() {
   const { totalUnread } = useMessenger();
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const notifRef = useRef(null);
   const navigate = useNavigate();
 
@@ -87,6 +97,16 @@ function DashboardTopbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-3 md:gap-4">
+          {/* Mobile Drawer Toggle */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle Dashboard Menu"
+            className="lg:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-gray-300 hover:border-cyan-400 hover:text-cyan-400 transition cursor-pointer"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
           <Link
             to="/"
             className="lg:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-gray-300 hover:border-cyan-400"
@@ -283,6 +303,144 @@ function DashboardTopbar() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Dashboard Navigation Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden bg-slate-950/98 border-b border-cyan-500/30 overflow-hidden px-6 py-4 shadow-2xl"
+          >
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+                <img
+                  src={user.avatar}
+                  alt={user.displayName}
+                  className="w-10 h-10 rounded-full border border-cyan-400 object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="text-white font-bold text-sm truncate">{user.displayName}</p>
+                  <p className="text-xs text-cyan-400 font-mono">{user.lovId}</p>
+                </div>
+              </div>
+
+              {isAdmin || isFounder ? (
+                <>
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-cyan-300 bg-cyan-500/10 font-bold text-sm"
+                  >
+                    <LayoutDashboard size={18} />
+                    Admin Overview
+                  </Link>
+                  <Link
+                    to="/admin/members"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <Users size={18} />
+                    Manage Members
+                  </Link>
+                  <Link
+                    to="/admin/pending-users"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <Shield size={18} />
+                    Pending Applications
+                  </Link>
+                  <Link
+                    to="/admin/projects"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <Film size={18} />
+                    Manage Projects
+                  </Link>
+                  <Link
+                    to="/admin/contests"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <Trophy size={18} />
+                    Manage Contests
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-cyan-300 bg-cyan-500/10 font-bold text-sm"
+                  >
+                    <LayoutDashboard size={18} />
+                    Member Dashboard
+                  </Link>
+                  <Link
+                    to={`/team/${user.username || "ovi"}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <UserIcon size={18} />
+                    My Profile
+                  </Link>
+                  <Link
+                    to="/my-projects"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <Film size={18} />
+                    My Projects
+                  </Link>
+                  <Link
+                    to="/rewards"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+                  >
+                    <Trophy size={18} />
+                    Rewards & Points
+                  </Link>
+                </>
+              )}
+
+              <Link
+                to="/messages"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:text-white text-sm"
+              >
+                <MessageCircle size={18} />
+                Studio Messenger
+              </Link>
+
+              <div className="pt-2 border-t border-slate-800 flex gap-2">
+                <Link
+                  to="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 py-2 px-3 rounded-xl bg-slate-900 border border-slate-700 text-gray-300 text-xs font-semibold text-center flex items-center justify-center gap-1.5"
+                >
+                  <Home size={14} />
+                  Public Home
+                </Link>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setMobileMenuOpen(false);
+                    await signOut();
+                    navigate("/");
+                  }}
+                  className="flex-1 py-2 px-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <LogOut size={14} />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ProfilePictureModal
         isOpen={avatarModalOpen}

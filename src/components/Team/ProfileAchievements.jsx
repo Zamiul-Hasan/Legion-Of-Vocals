@@ -1,6 +1,8 @@
 import { Trophy } from "lucide-react";
 
 function ProfileAchievements({ member }) {
+  const achievements = Array.isArray(member?.achievements) ? member.achievements : [];
+
   return (
     <section className="bg-slate-900 py-20">
       <div className="max-w-7xl mx-auto px-6">
@@ -9,7 +11,7 @@ function ProfileAchievements({ member }) {
           Achievements
         </h2>
 
-        {member.achievements.length === 0 ? (
+        {achievements.length === 0 ? (
           <div className="bg-slate-800 border border-cyan-500/20 rounded-3xl p-12 text-center">
             <p className="text-gray-400">
               No achievements yet.
@@ -17,7 +19,7 @@ function ProfileAchievements({ member }) {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {member.achievements.map((achievement, index) => (
+            {achievements.map((achievement, index) => (
               <div
                 key={index}
                 className="bg-slate-800 border border-cyan-500/20 rounded-3xl p-8 hover:border-yellow-400 transition duration-300"
