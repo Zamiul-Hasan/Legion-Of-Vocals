@@ -67,7 +67,22 @@ export const authService = {
         if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
           return { data: null, error: { message: "Google Sign-in popup was closed." } };
         }
-        console.warn("[LOV Auth] Firebase Google login notice:", err);
+        if (err.code === "auth/unauthorized-domain") {
+          return {
+            data: null,
+            error: {
+              message:
+                "Firebase Notice: Domain 'legion-of-vocals.vercel.app' is not yet in Authorized domains. Please add it in Firebase Console > Authentication > Settings > Authorized domains.",
+              code: "UNAUTHORIZED_DOMAIN",
+            },
+          };
+        }
+        return {
+          data: null,
+          error: {
+            message: err.message || "Failed to sign in with Google via Firebase.",
+          },
+        };
       }
     }
 
