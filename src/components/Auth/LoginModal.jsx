@@ -182,9 +182,7 @@ export default function LoginModal({ isOpen, onClose }) {
 
     // 3. Check pending applicants in lov_pending_users_v2 strictly by email
     const savedPending = JSON.parse(
-      localStorage.getItem("lov_pending_users_v2") ||
-        localStorage.getItem("pendingUsers") ||
-        "[]"
+      localStorage.getItem("lov_pending_users_v2") || "[]"
     );
     const p = savedPending.find(
       (u) => u.email && u.email.toLowerCase() === clean
@@ -327,9 +325,7 @@ export default function LoginModal({ isOpen, onClose }) {
         localStorage.setItem("lov_members_v2", JSON.stringify(updated));
       } else if (resetTarget.type === "pending") {
         const savedPending = JSON.parse(
-          localStorage.getItem("lov_pending_users_v2") ||
-            localStorage.getItem("pendingUsers") ||
-            "[]"
+          localStorage.getItem("lov_pending_users_v2") || "[]"
         );
         const updated = savedPending.map((p) =>
           p.id === resetTarget.id ||

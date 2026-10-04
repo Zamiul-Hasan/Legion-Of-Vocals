@@ -192,6 +192,36 @@ export function cleanupStaleStorage() {
         localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(cleaned));
       }
     }
+
+    // 5. Purge legacy dummy pending users (Tanvir Hasan, Arafat Islam, Sakib Ahmed, LOV-000001..3, 101..103)
+    localStorage.removeItem("pendingUsers");
+    const pendingRaw = localStorage.getItem("lov_pending_users_v2");
+    if (pendingRaw) {
+      try {
+        const list = JSON.parse(pendingRaw);
+        if (Array.isArray(list)) {
+          const dummyIds = ["101", "102", "103", "lov-000001", "lov-000002", "lov-000003"];
+          const dummyEmails = ["tanvir@gmail.com", "arafat@gmail.com", "sakib@gmail.com"];
+          const dummyNames = ["tanvir hasan", "arafat islam", "sakib ahmed"];
+
+          const filtered = list.filter((p) => {
+            if (!p) return false;
+            const idMatch = p.id != null && dummyIds.includes(String(p.id).toLowerCase());
+            const lovMatch = p.lovId && dummyIds.includes(p.lovId.toLowerCase());
+            const emailMatch = p.email && dummyEmails.includes(p.email.toLowerCase());
+            const nameMatch = p.fullName && dummyNames.includes(p.fullName.toLowerCase());
+            return !(idMatch || lovMatch || emailMatch || nameMatch);
+          });
+
+          if (filtered.length !== list.length) {
+            localStorage.setItem("lov_pending_users_v2", JSON.stringify(filtered));
+            window.dispatchEvent(new Event("lov-pending-updated"));
+          }
+        }
+      } catch {
+        localStorage.setItem("lov_pending_users_v2", "[]");
+      }
+    }
   } catch {
     // ignore errors
   }

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 
 import Button from "../../UI/Button";
-import initialPendingUsers from "../../../data/pendingUsers";
 
 function AddMemberModal({
   open,
@@ -24,12 +23,13 @@ function AddMemberModal({
 
   const handleSearch = () => {
     setNotFound(false);
-    const saved = JSON.parse(
-      localStorage.getItem("lov_pending_users_v2") ||
-      localStorage.getItem("pendingUsers") ||
-      "[]"
-    );
-    const allPending = [...saved, ...initialPendingUsers];
+    let allPending = [];
+    try {
+      const saved = localStorage.getItem("lov_pending_users_v2");
+      allPending = saved ? JSON.parse(saved) : [];
+    } catch {
+      allPending = [];
+    }
     const query = lovId.trim().toLowerCase();
 
     const user = allPending.find(

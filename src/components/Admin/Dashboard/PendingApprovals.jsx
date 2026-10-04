@@ -3,31 +3,45 @@ import { Link } from "react-router-dom";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useDubVideos } from "../../../hooks/useDubVideos";
 
-function PendingApprovals() {
-  const [pendingUsers, setPendingUsers] = useState(() => {
-    try {
-      const saved =
-        localStorage.getItem("lov_pending_users_v2") ||
-        localStorage.getItem("pendingUsers");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
+const DUMMY_PENDING_EMAILS = ["tanvir@gmail.com", "arafat@gmail.com", "sakib@gmail.com"];
+const DUMMY_PENDING_IDS = ["101", "102", "103", "lov-000001", "lov-000002", "lov-000003"];
+const DUMMY_PENDING_NAMES = ["tanvir hasan", "arafat islam", "sakib ahmed"];
+
+function isRealPendingUser(user) {
+  if (!user) return false;
+  const idMatch = user.id != null && DUMMY_PENDING_IDS.includes(String(user.id).toLowerCase());
+  const lovMatch = user.lovId && DUMMY_PENDING_IDS.includes(user.lovId.toLowerCase());
+  const emailMatch = user.email && DUMMY_PENDING_EMAILS.includes(user.email.toLowerCase());
+  const nameMatch = user.fullName && DUMMY_PENDING_NAMES.includes(user.fullName.toLowerCase());
+  return !(idMatch || lovMatch || emailMatch || nameMatch);
+}
+
+function loadCleanPendingUsers() {
+  try {
+    localStorage.removeItem("pendingUsers");
+    const saved = localStorage.getItem("lov_pending_users_v2");
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    const clean = parsed.filter(isRealPendingUser);
+    if (clean.length !== parsed.length) {
+      localStorage.setItem("lov_pending_users_v2", JSON.stringify(clean));
     }
-  });
+    return clean;
+  } catch {
+    return [];
+  }
+}
+
+function PendingApprovals() {
+  const [pendingUsers, setPendingUsers] = useState(() => loadCleanPendingUsers());
 
   const { videos } = useDubVideos();
   const pendingVideos = videos.filter((v) => v.status === "Pending Review");
 
   useEffect(() => {
     const handleSync = () => {
-      try {
-        const saved =
-          localStorage.getItem("lov_pending_users_v2") ||
-          localStorage.getItem("pendingUsers");
-        setPendingUsers(saved ? JSON.parse(saved) : []);
-      } catch {
-        setPendingUsers([]);
-      }
+      setPendingUsers(loadCleanPendingUsers());
     };
 
     window.addEventListener("storage", handleSync);

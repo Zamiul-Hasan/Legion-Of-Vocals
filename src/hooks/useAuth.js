@@ -317,9 +317,7 @@ export function useAuth() {
 
     // 4. Check recently registered pending users (lov_pending_users_v2) - STRICTLY by Email
     const savedPending = JSON.parse(
-      localStorage.getItem("lov_pending_users_v2") ||
-      localStorage.getItem("pendingUsers") ||
-      "[]"
+      localStorage.getItem("lov_pending_users_v2") || "[]"
     );
     const matchedPending = savedPending.find(
       (p) => p.email && p.email.toLowerCase() === cleanId

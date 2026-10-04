@@ -9,21 +9,36 @@ import PendingTable from "../components/Admin/PendingUsers/PendingTable";
 import PendingPagination from "../components/Admin/PendingUsers/PendingPagination";
 
 import { useMembers } from "../hooks/useMembers";
-import initialPendingUsers from "../data/pendingUsers";
 
-function PendingUsers() {
-  const [pendingUsers, setPendingUsers] = useState(() => {
+const DUMMY_PENDING_EMAILS = ["tanvir@gmail.com", "arafat@gmail.com", "sakib@gmail.com"];
+const DUMMY_PENDING_IDS = ["101", "102", "103", "lov-000001", "lov-000002", "lov-000003"];
+const DUMMY_PENDING_NAMES = ["tanvir hasan", "arafat islam", "sakib ahmed"];
+
+function isRealPendingUser(user) {
+  if (!user) return false;
+  const idMatch = user.id != null && DUMMY_PENDING_IDS.includes(String(user.id).toLowerCase());
+  const lovMatch = user.lovId && DUMMY_PENDING_IDS.includes(user.lovId.toLowerCase());
+  const emailMatch = user.email && DUMMY_PENDING_EMAILS.includes(user.email.toLowerCase());
+  const nameMatch = user.fullName && DUMMY_PENDING_NAMES.includes(user.fullName.toLowerCase());
+  return !(idMatch || lovMatch || emailMatch || nameMatch);
+}
+
+function loadCleanPending() {
+  try {
+    localStorage.removeItem("pendingUsers");
     const saved = localStorage.getItem("lov_pending_users_v2");
     if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // ignore
-      }
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed.filter(isRealPendingUser);
     }
-    return initialPendingUsers;
-  });
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function PendingUsers() {
+  const [pendingUsers, setPendingUsers] = useState(() => loadCleanPending());
 
   const { members, setMembers } = useMembers();
 

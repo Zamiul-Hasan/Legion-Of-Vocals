@@ -10,7 +10,6 @@ import RoleStep from "./RoleStep";
 import UploadStep from "./UploadStep";
 import ReviewStep from "./ReviewStep";
 import SuccessModal from "./SuccessModal";
-import initialPendingUsers from "../../../data/pendingUsers";
 import members from "../../../data/members";
 import { generateUniqueLovId } from "../../../utils/helpers";
 
@@ -61,10 +60,13 @@ function RegisterForm({
     }
 
     // Generate official unique LOV ID only upon successful submission
-    const saved =
-      localStorage.getItem("lov_pending_users_v2") ||
-      localStorage.getItem("pendingUsers");
-    const existing = saved ? JSON.parse(saved) : initialPendingUsers;
+    let existing = [];
+    try {
+      const saved = localStorage.getItem("lov_pending_users_v2");
+      existing = saved ? JSON.parse(saved) : [];
+    } catch {
+      existing = [];
+    }
     const existingIds = [
       ...members.map((m) => m.lovId),
       ...existing.map((p) => p.lovId),

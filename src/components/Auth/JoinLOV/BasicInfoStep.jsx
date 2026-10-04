@@ -19,7 +19,6 @@ import { emailService } from "../../../services/emailService";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import TurnstileWidget from "../../Common/TurnstileWidget";
 import members from "../../../data/members";
-import initialPendingUsers from "../../../data/pendingUsers";
 
 function BasicInfoStep({ formData, setFormData }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -158,14 +157,15 @@ function BasicInfoStep({ formData, setFormData }) {
    * Check if the email address is already in use by a member or pending applicant
    */
   const checkDuplicateEmail = (email) => {
-    const savedPending = JSON.parse(
-      localStorage.getItem("lov_pending_users_v2") ||
-      localStorage.getItem("pendingUsers") ||
-      "[]"
-    );
+    let savedPending = [];
+    try {
+      const raw = localStorage.getItem("lov_pending_users_v2");
+      savedPending = raw ? JSON.parse(raw) : [];
+    } catch {
+      savedPending = [];
+    }
     const allUsedEmails = [
       ...members.map((m) => m.email?.toLowerCase()),
-      ...initialPendingUsers.map((p) => p.email?.toLowerCase()),
       ...savedPending.map((p) => p.email?.toLowerCase()),
     ].filter(Boolean);
 
