@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useDubVideos } from "../../../hooks/useDubVideos";
+import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 
 const DUMMY_PENDING_EMAILS = ["tanvir@gmail.com", "arafat@gmail.com", "sakib@gmail.com"];
 const DUMMY_PENDING_IDS = ["101", "102", "103", "lov-000001", "lov-000002", "lov-000003"];
@@ -40,13 +41,62 @@ function PendingApprovals() {
   const pendingVideos = videos.filter((v) => v.status === "Pending Review");
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchPendingFromCloud = async () => {
+      if (isSupabaseConfigured()) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .or("role.eq.Pending,role.eq.pending,is_approved.eq.false");
+
+          if (!error && Array.isArray(data) && isMounted) {
+            const mapped = data.map((p) => ({
+              id: p.id,
+              lovId: p.lov_id,
+              fullName: p.full_name,
+              username: p.username,
+              email: p.email,
+              appliedRole: p.department || p.role || "Member Application",
+              status: "Pending",
+              joinedAt: p.created_at ? new Date(p.created_at).toLocaleDateString("en-GB") : "Recent",
+              avatar: p.avatar_url,
+              bio: p.bio,
+            }));
+
+            const localClean = loadCleanPendingUsers();
+            const merged = [...mapped];
+            for (const loc of localClean) {
+              if (
+                !merged.some(
+                  (m) =>
+                    (m.email && loc.email && m.email.toLowerCase() === loc.email.toLowerCase()) ||
+                    (m.lovId && loc.lovId && m.lovId === loc.lovId)
+                )
+              ) {
+                merged.push(loc);
+              }
+            }
+            setPendingUsers(merged.filter(isRealPendingUser));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    fetchPendingFromCloud();
+
     const handleSync = () => {
       setPendingUsers(loadCleanPendingUsers());
+      fetchPendingFromCloud();
     };
 
     window.addEventListener("storage", handleSync);
     window.addEventListener("lov-pending-updated", handleSync);
     return () => {
+      isMounted = false;
       window.removeEventListener("storage", handleSync);
       window.removeEventListener("lov-pending-updated", handleSync);
     };

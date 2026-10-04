@@ -12,6 +12,8 @@ import ReviewStep from "./ReviewStep";
 import SuccessModal from "./SuccessModal";
 import members from "../../../data/members";
 import { generateUniqueLovId } from "../../../utils/helpers";
+import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { authService } from "../../../services/authService";
 
 function RegisterForm({
   currentStep,
@@ -120,6 +122,49 @@ function RegisterForm({
       JSON.stringify([newPendingUser, ...existing])
     );
     localStorage.removeItem("lov_join_form_draft");
+
+    // Sync real application to Supabase Cloud Database & Auth
+    if (isSupabaseConfigured()) {
+      try {
+        authService
+          .signUp({
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            displayName: formData.fullName,
+            role: "Pending",
+            department: formData.role || "Voice Acting",
+          })
+          .catch((e) => console.warn("[LOV] Supabase signUp background notice:", e));
+
+        supabase
+          .from("profiles")
+          .upsert(
+            {
+              lov_id: assignedLovId,
+              email: formData.email,
+              full_name: formData.fullName,
+              display_name: formData.fullName,
+              username: formData.username,
+              role: "Pending",
+              department: formData.role || "Voice Acting",
+              bio: formData.bio || "",
+              is_approved: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "lov_id" }
+          )
+          .then(() => {
+            window.dispatchEvent(new Event("lov-pending-updated"));
+          })
+          .catch((e) => console.warn("[LOV] Supabase profiles pending upsert notice:", e));
+      } catch (err) {
+        console.warn("[LOV] Supabase applicant sync notice:", err);
+      }
+    }
+
+    window.dispatchEvent(new Event("lov-pending-updated"));
 
     setFinalLovId(assignedLovId);
     setSuccessOpen(true);

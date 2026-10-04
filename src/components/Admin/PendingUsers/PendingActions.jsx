@@ -12,6 +12,7 @@ import ApproveUserModal from "./ApproveUserModal";
 import RejectUserModal from "./RejectUserModal";
 import PendingProfileModal from "./PendingProfileModal";
 import { loadMembers, saveMembers } from "../../../hooks/useMembers";
+import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 
 function PendingActions({
   user,
@@ -114,6 +115,22 @@ function PendingActions({
       return updated;
     });
 
+    if (isSupabaseConfigured()) {
+      const updates = {
+        role: data.role || "Member",
+        is_approved: true,
+        department: data.department || user.appliedRole || "Voice Actor",
+        updated_at: new Date().toISOString(),
+      };
+      if (user.id && typeof user.id === "string" && user.id.includes("-")) {
+        supabase.from("profiles").update(updates).eq("id", user.id).then();
+      } else if (user.email) {
+        supabase.from("profiles").update(updates).eq("email", user.email).then();
+      } else if (user.lovId) {
+        supabase.from("profiles").update(updates).eq("lov_id", user.lovId).then();
+      }
+    }
+
     setApproveOpen(false);
   };
 
@@ -127,6 +144,21 @@ function PendingActions({
       window.dispatchEvent(new Event("lov-pending-updated"));
       return updated;
     });
+
+    if (isSupabaseConfigured()) {
+      const updates = {
+        role: "Rejected",
+        is_approved: false,
+        updated_at: new Date().toISOString(),
+      };
+      if (user.id && typeof user.id === "string" && user.id.includes("-")) {
+        supabase.from("profiles").update(updates).eq("id", user.id).then();
+      } else if (user.email) {
+        supabase.from("profiles").update(updates).eq("email", user.email).then();
+      } else if (user.lovId) {
+        supabase.from("profiles").update(updates).eq("lov_id", user.lovId).then();
+      }
+    }
 
     setRejectOpen(false);
   };
