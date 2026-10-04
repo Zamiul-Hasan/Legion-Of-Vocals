@@ -573,8 +573,8 @@ export function useMembers() {
     if (authUser.email) saveAvatarOverride(authUser.email, compressedAvatar);
 
     // 4. Sync with Supabase if configured
-    if (isSupabaseConfigured() && updatedMember?.id) {
-      memberService.updateAvatar(updatedMember.id, compressedAvatar);
+    if (isSupabaseConfigured() && updatedMember) {
+      memberService.updateAvatar(updatedMember, compressedAvatar);
     }
 
     if (updatedMember) {
@@ -632,6 +632,11 @@ export function useMembers() {
     saveCoverOverride(query, compressedCover);
 
     updateMemberProfile(idOrUsername, { cover: compressedCover });
+
+    // Sync cover photo with Supabase Cloud
+    if (isSupabaseConfigured() && (targetMember || authUser)) {
+      memberService.updateCover(targetMember || authUser, compressedCover);
+    }
   };
 
   const addMember = (newMember) => {
