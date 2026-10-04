@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured, getProductionAuthRedirectUrl } from "../lib/supabase";
 import { auth, googleProvider, isFirebaseConfigured } from "../lib/firebase";
-import { signInWithPopup, signOut as fbSignOut } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut as fbSignOut } from "firebase/auth";
 
 export const authService = {
   // Sign up with True Email Verification
@@ -64,6 +64,21 @@ export const authService = {
           error: null,
         };
       } catch (err) {
+        if (err.code === "auth/popup-blocked") {
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return { redirecting: true, error: null };
+          } catch {
+            return {
+              data: null,
+              error: {
+                message:
+                  "Browser blocked popup. Click the popup blocked icon in your browser address bar and select 'Always allow', then try again.",
+                code: "POPUP_BLOCKED",
+              },
+            };
+          }
+        }
         if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
           return { data: null, error: { message: "Google Sign-in popup was closed." } };
         }
@@ -157,6 +172,32 @@ export const authService = {
     }
     if (!isSupabaseConfigured()) return { error: null };
     return await supabase.auth.signOut();
+  },
+
+  // Get Firebase redirect result if user returned from redirect
+  async getFirebaseRedirectResult() {
+    if (!isFirebaseConfigured()) return null;
+    try {
+      const res = await getRedirectResult(auth);
+      if (res?.user) {
+        const fbUser = res.user;
+        return {
+          user: {
+            id: fbUser.uid,
+            email: fbUser.email,
+            fullName: fbUser.displayName || fbUser.email.split("@")[0],
+            displayName: fbUser.displayName || fbUser.email.split("@")[0],
+            avatar: fbUser.photoURL,
+            emailVerified: fbUser.emailVerified,
+          },
+          session: { accessToken: await fbUser.getIdToken() },
+          error: null,
+        };
+      }
+      return null;
+    } catch (err) {
+      return { user: null, error: err };
+    }
   },
 
   // Get active session

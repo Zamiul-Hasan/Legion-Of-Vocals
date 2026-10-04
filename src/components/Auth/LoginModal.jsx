@@ -131,7 +131,17 @@ export default function LoginModal({ isOpen, onClose }) {
     try {
       const res = await signInWithGoogle();
       setGoogleLoading(false);
-      if (res?.error) {
+      if (res?.success) {
+        onClose();
+        if (res.user?.role === "founder" || res.user?.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      } else if (res?.redirecting) {
+        // Redirecting to Google Sign-in page
+        return;
+      } else if (res?.error) {
         setError(res.error.message);
       }
     } catch (err) {

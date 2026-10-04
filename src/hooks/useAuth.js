@@ -117,6 +117,31 @@ export function useAuth() {
   const [user, setUser] = useState(() => loadCurrentUser());
 
   useEffect(() => {
+    // Check if returning from Firebase Google redirect
+    authService.getFirebaseRedirectResult?.().then((res) => {
+      if (res?.user) {
+        const email = (res.user.email || "").toLowerCase();
+        const isFounderEmail =
+          email === "zamiulhasan6@gmail.com" ||
+          email === "zamiul.hasan@gmail.com";
+
+        const loggedInUser = {
+          id: isFounderEmail ? 1 : (res.user.id || Date.now()),
+          lovId: isFounderEmail ? "LOV-2026-0001" : `LOV-${String(res.user.id || Date.now()).slice(0, 6).toUpperCase()}`,
+          fullName: isFounderEmail ? "MD Zamiul Hasan" : (res.user.fullName || res.user.displayName || email.split("@")[0]),
+          displayName: isFounderEmail ? "MD Zamiul Hasan" : (res.user.displayName || email.split("@")[0]),
+          username: isFounderEmail ? "ovi" : (res.user.email ? res.user.email.split("@")[0] : "user"),
+          email: res.user.email,
+          avatar: isFounderEmail ? members[0].avatar : (res.user.avatar || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(res.user.email)}`),
+          role: isFounderEmail ? "founder" : "member",
+          roleLabel: isFounderEmail ? "Founder & Studio Lead" : "Studio Member",
+        };
+
+        setUser(loggedInUser);
+        saveCurrentUser(loggedInUser);
+      }
+    }).catch(() => {});
+
     // Listen for live Supabase auth session changes (e.g. Google Login redirect)
     if (isSupabaseConfigured()) {
       authService.getSession().then((session) => {
