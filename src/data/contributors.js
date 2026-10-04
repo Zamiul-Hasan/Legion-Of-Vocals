@@ -1,4 +1,4 @@
-import logo from "../assets/images/logos/logo.png";
+import founderAvatar from "../assets/images/characters/founder-avatar.png";
 
 // Fresh start: Only verified Founder is assigned as Project Director across initial productions.
 // Real cast members will be assigned as voice actors pass auditions!
@@ -10,7 +10,7 @@ const contributors = [
     memberName: "MD Zamiul Hasan",
     role: "Project Director",
     character: "",
-    avatar: logo,
+    avatar: founderAvatar,
   },
   {
     id: 2,
@@ -19,7 +19,7 @@ const contributors = [
     memberName: "MD Zamiul Hasan",
     role: "Project Director",
     character: "",
-    avatar: logo,
+    avatar: founderAvatar,
   },
   {
     id: 3,
@@ -28,7 +28,7 @@ const contributors = [
     memberName: "MD Zamiul Hasan",
     role: "Project Director",
     character: "",
-    avatar: logo,
+    avatar: founderAvatar,
   },
 ];
 

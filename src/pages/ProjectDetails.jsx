@@ -5,6 +5,7 @@ import Footer from "../components/Footer/Footer";
 
 import { useProjects } from "../hooks/useProjects";
 import { useDubVideos } from "../hooks/useDubVideos";
+import { useMembers } from "../hooks/useMembers";
 import contributors from "../data/contributors";
 import gallery from "../data/gallery";
 
@@ -20,6 +21,7 @@ function ProjectDetails() {
   const { id } = useParams();
   const { projects } = useProjects();
   const { videos } = useDubVideos();
+  const { members } = useMembers();
 
   const project = projects.find((p) => p.id === Number(id));
 
@@ -39,9 +41,22 @@ function ProjectDetails() {
     );
   }
 
-  const projectContributors = contributors.filter(
-    (contributor) => contributor.projectId === project.id
-  );
+  const projectContributors = contributors
+    .filter((contributor) => contributor.projectId === project.id)
+    .map((contributor) => {
+      const member = members.find(
+        (m) =>
+          (m.lovId && contributor.memberId && m.lovId.toLowerCase() === contributor.memberId.toLowerCase()) ||
+          (m.fullName && contributor.memberName && m.fullName.toLowerCase() === contributor.memberName.toLowerCase()) ||
+          (m.displayName && contributor.memberName && m.displayName.toLowerCase() === contributor.memberName.toLowerCase())
+      );
+      return {
+        ...contributor,
+        avatar: member?.avatar || contributor.avatar,
+        memberName: member?.displayName || member?.fullName || contributor.memberName,
+        username: member?.username,
+      };
+    });
 
   const projectGallery = gallery.filter(
     (image) => image.projectId === project.id

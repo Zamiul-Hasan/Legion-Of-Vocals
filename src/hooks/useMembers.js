@@ -82,44 +82,64 @@ export function cleanupStaleStorage() {
     const overridesRaw = localStorage.getItem(AVATAR_OVERRIDES_KEY);
     if (overridesRaw) {
       const overrides = JSON.parse(overridesRaw);
-      const founderAvatar =
+      const rawFounderAvatar =
         overrides["zamiul"] ||
         overrides["ovi"] ||
         overrides["lov-2026-0001"] ||
         overrides["1"] ||
         overrides["zamiulhasan6@gmail.com"];
 
+      const founderAvatar =
+        rawFounderAvatar && !rawFounderAvatar.includes("logo.png") && !rawFounderAvatar.includes("logo.jpg")
+          ? rawFounderAvatar
+          : null;
+
       if (founderAvatar) {
         overrides["ovi"] = founderAvatar;
         overrides["1"] = founderAvatar;
         overrides["lov-2026-0001"] = founderAvatar;
         overrides["zamiulhasan6@gmail.com"] = founderAvatar;
-        delete overrides["zamiul"];
-        delete overrides["zamiul.hasan@gmail.com"];
-        localStorage.setItem(AVATAR_OVERRIDES_KEY, JSON.stringify(overrides));
+      } else {
+        delete overrides["ovi"];
+        delete overrides["1"];
+        delete overrides["lov-2026-0001"];
+        delete overrides["zamiulhasan6@gmail.com"];
       }
+      delete overrides["zamiul"];
+      delete overrides["zamiul.hasan@gmail.com"];
+      localStorage.setItem(AVATAR_OVERRIDES_KEY, JSON.stringify(overrides));
     }
 
     // 2. Clean up lov_cover_overrides
     const coverRaw = localStorage.getItem(COVER_OVERRIDES_KEY);
     if (coverRaw) {
       const covers = JSON.parse(coverRaw);
-      const founderCover =
+      const rawFounderCover =
         covers["zamiul"] ||
         covers["ovi"] ||
         covers["lov-2026-0001"] ||
         covers["1"] ||
         covers["zamiulhasan6@gmail.com"];
 
+      const founderCover =
+        rawFounderCover && !rawFounderCover.includes("blue-lock-banner.jpg")
+          ? rawFounderCover
+          : null;
+
       if (founderCover) {
         covers["ovi"] = founderCover;
         covers["1"] = founderCover;
         covers["lov-2026-0001"] = founderCover;
         covers["zamiulhasan6@gmail.com"] = founderCover;
-        delete covers["zamiul"];
-        delete covers["zamiul.hasan@gmail.com"];
-        localStorage.setItem(COVER_OVERRIDES_KEY, JSON.stringify(covers));
+      } else {
+        delete covers["ovi"];
+        delete covers["1"];
+        delete covers["lov-2026-0001"];
+        delete covers["zamiulhasan6@gmail.com"];
       }
+      delete covers["zamiul"];
+      delete covers["zamiul.hasan@gmail.com"];
+      localStorage.setItem(COVER_OVERRIDES_KEY, JSON.stringify(covers));
     }
 
     // 3. Clean up lov_current_user_v2 & legacy lov_current_user
@@ -249,7 +269,7 @@ function applyOverrides(memberList) {
 
     let avatar = m.avatar;
     for (const k of keys) {
-      if (avatarOverrides[k]) {
+      if (avatarOverrides[k] && !avatarOverrides[k].includes("logo.png") && !avatarOverrides[k].includes("logo.jpg")) {
         avatar = avatarOverrides[k];
         break;
       }
@@ -257,13 +277,16 @@ function applyOverrides(memberList) {
 
     let cover = m.cover;
     for (const k of keys) {
-      if (coverOverrides[k]) {
+      if (coverOverrides[k] && !coverOverrides[k].includes("blue-lock-banner.jpg")) {
         cover = coverOverrides[k];
         break;
       }
     }
 
     if (isFounder) {
+      const founderDef = defaultMembers[0];
+      const validAvatar = avatar && !avatar.includes("logo.png") && !avatar.includes("logo.jpg") ? avatar : founderDef.avatar;
+      const validCover = cover && !cover.includes("blue-lock-banner.jpg") ? cover : founderDef.cover;
       return {
         ...m,
         id: 1,
@@ -273,8 +296,8 @@ function applyOverrides(memberList) {
         email: "zamiulhasan6@gmail.com",
         role: "Founder",
         lovId: "LOV-2026-0001",
-        avatar,
-        cover,
+        avatar: validAvatar,
+        cover: validCover,
       };
     }
 
@@ -314,10 +337,16 @@ export function loadMembers() {
 
           // If Founder, preserve legit info strictly:
           if (isFounder) {
+            const validAvatar = found.avatar && !found.avatar.includes("logo.png") && !found.avatar.includes("logo.jpg")
+              ? found.avatar
+              : def.avatar;
+            const validCover = found.cover && !found.cover.includes("blue-lock-banner.jpg")
+              ? found.cover
+              : def.cover;
             return {
               ...def,
-              avatar: found.avatar || def.avatar,
-              cover: found.cover || def.cover,
+              avatar: validAvatar,
+              cover: validCover,
               avatarFrame: found.avatarFrame || def.avatarFrame,
               avatarCaption: found.avatarCaption || def.avatarCaption,
               stats: found.stats || def.stats,
@@ -399,15 +428,17 @@ export function useMembers() {
             ].filter(Boolean);
 
             for (const k of keys) {
-              if (avatarOverrides[k]) {
+              if (avatarOverrides[k] && !avatarOverrides[k].includes("logo.png") && !avatarOverrides[k].includes("logo.jpg")) {
                 avatar = avatarOverrides[k];
                 break;
               }
             }
 
-            if (!avatar || avatar.includes("logo.png")) {
-              if (localMatch?.avatar && !localMatch.avatar.includes("logo.png")) {
+            if (!avatar || avatar.includes("logo.png") || avatar.includes("logo.jpg")) {
+              if (localMatch?.avatar && !localMatch.avatar.includes("logo.png") && !localMatch.avatar.includes("logo.jpg")) {
                 avatar = localMatch.avatar;
+              } else if (String(dbM.id) === "1" || dbM.lovId === "LOV-2026-0001" || dbM.username === "ovi") {
+                avatar = defaultMembers[0].avatar;
               }
             }
 

@@ -25,6 +25,7 @@ import { useMembers } from "../../hooks/useMembers";
 import { useMessenger, openChatWithMember } from "../../hooks/useMessenger";
 import ProfilePictureModal from "../Profile/ProfilePictureModal";
 import useAuth from "../../hooks/useAuth";
+import founderAvatar from "../../assets/images/characters/founder-avatar.png";
 
 function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -68,9 +69,9 @@ function UserMenu() {
       ? "Admin"
       : authUser.roleLabel || "Member",
     avatar:
-      currentUser?.avatar ||
-      authUser.avatar ||
-      "https://i.pravatar.cc/150?img=33",
+      (currentUser?.avatar && !currentUser.avatar.includes("logo.png") && !currentUser.avatar.includes("logo.jpg") ? currentUser.avatar : null) ||
+      (authUser.avatar && !authUser.avatar.includes("logo.png") && !authUser.avatar.includes("logo.jpg") ? authUser.avatar : null) ||
+      (isFounder ? founderAvatar : "https://i.pravatar.cc/150?img=33"),
   };
 
   const getCategoryIcon = (cat) => {

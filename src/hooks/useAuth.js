@@ -43,7 +43,7 @@ export function loadCurrentUser() {
               ].filter(Boolean);
 
           for (const k of keys) {
-            if (overrides[k]) {
+            if (overrides[k] && !overrides[k].includes("logo.png") && !overrides[k].includes("logo.jpg")) {
               parsed.avatar = overrides[k];
               break;
             }
@@ -51,6 +51,11 @@ export function loadCurrentUser() {
         } catch {
           // ignore
         }
+
+        if (isFounderUser && (!parsed.avatar || parsed.avatar.includes("logo.png") || parsed.avatar.includes("logo.jpg"))) {
+          parsed.avatar = members[0].avatar;
+        }
+
         return parsed;
       }
     }
@@ -72,13 +77,25 @@ function attachAvatarOverride(u) {
     ].filter(Boolean);
 
     for (const k of keys) {
-      if (overrides[k]) {
+      if (overrides[k] && !overrides[k].includes("logo.png") && !overrides[k].includes("logo.jpg")) {
         return { ...u, avatar: overrides[k] };
       }
     }
   } catch {
     // ignore
   }
+
+  const isFounderUser =
+    String(u.id) === "1" ||
+    u.username === "ovi" ||
+    u.username === "zamiul" ||
+    u.email === "zamiulhasan6@gmail.com" ||
+    u.lovId === "LOV-2026-0001";
+
+  if (isFounderUser && (!u.avatar || u.avatar.includes("logo.png") || u.avatar.includes("logo.jpg"))) {
+    return { ...u, avatar: members[0].avatar };
+  }
+
   return u;
 }
 
