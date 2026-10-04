@@ -7,12 +7,78 @@ import { isSupabaseConfigured } from "../lib/supabase";
 
 const STORAGE_KEY = "lov_contests_v3";
 const SYNC_EVENT = "lov-contests-updated";
+const ROUND_STATUS_OVERRIDES_KEY = "lov_round_status_overrides_v2";
 
 export const CONTEST_BANNER_PRESETS = [
   { label: "Solo Leveling Championship", url: soloLevelingBanner },
   { label: "Demon Slayer Showdown", url: demonSlayerBanner },
   { label: "Blue Lock Arena", url: blueLockBanner },
 ];
+
+export function getRoundStatusOverrides() {
+  try {
+    const raw = localStorage.getItem(ROUND_STATUS_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveRoundStatusOverride(roundId, status) {
+  try {
+    const current = getRoundStatusOverrides();
+    const cleanId = String(roundId || "").toLowerCase();
+    const num = cleanId.replace(/\D/g, "");
+
+    current[cleanId] = status;
+    if (num) {
+      current[`round-${num}`] = status;
+      current[`r${num}`] = status;
+      current[num] = status;
+    }
+    localStorage.setItem(ROUND_STATUS_OVERRIDES_KEY, JSON.stringify(current));
+    window.dispatchEvent(new Event(SYNC_EVENT));
+  } catch {
+    // ignore
+  }
+}
+
+export function applyRoundStatusOverrides(rounds = []) {
+  const overrides = getRoundStatusOverrides();
+  return (rounds || []).map((r) => {
+    const rId = String(r.id || "").toLowerCase();
+    const num = String(r.roundNumber || "").replace(/\D/g, "");
+    const override =
+      overrides[rId] ||
+      (num ? overrides[`round-${num}`] : null) ||
+      (num ? overrides[`r${num}`] : null) ||
+      (num ? overrides[num] : null);
+
+    return override ? { ...r, status: override } : r;
+  });
+}
+
+export function isContestMatch(contest, targetId) {
+  if (!contest) return false;
+  if (targetId === undefined || targetId === null || targetId === "") return true;
+  const cId = String(contest.id || "").toLowerCase();
+  const tId = String(targetId || "").toLowerCase();
+  if (cId === tId) return true;
+  if (!isNaN(Number(cId)) && !isNaN(Number(tId)) && Number(cId) === Number(tId)) return true;
+  if (contest.showBanner) return true;
+  return false;
+}
+
+export function isRoundMatch(round, targetRoundId) {
+  if (!round || !targetRoundId) return false;
+  const rId = String(round.id || "").toLowerCase();
+  const tId = String(targetRoundId || "").toLowerCase();
+  if (rId === tId) return true;
+  const roundNum = String(round.roundNumber || "").replace(/\D/g, "");
+  const targetNum = tId.replace(/\D/g, "");
+  if (roundNum && targetNum && roundNum === targetNum) return true;
+  return false;
+}
 
 export function extractHashtags(text = "", requiredTag = "") {
   const matches = String(text).match(/#[a-zA-Z0-9_\u0980-\u09FF]+/g) || [];
@@ -64,7 +130,6 @@ export function getEntryPointsSummary(entry, rounds = []) {
     });
   }
 
-  // Voting points are removed per contest rules; points are awarded exclusively by judges
   const votePoints = 0;
   const grandTotal = judgeTotal;
 
@@ -149,17 +214,19 @@ export function deduplicateContestEntries(entries = []) {
 function loadContests() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+    let list;
     if (!raw) {
+      list = DEFAULT_CONTESTS;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CONTESTS));
-      return DEFAULT_CONTESTS;
+    } else {
+      const parsed = JSON.parse(raw);
+      list = Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CONTESTS;
     }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return DEFAULT_CONTESTS;
-    }
-    // Ensure entries are deduplicated per round and have roundScores initialized
-    return parsed.map((c) => ({
+
+    // Apply round status overrides so local admin stops/starts persist instantly across reloads
+    return list.map((c) => ({
       ...c,
+      rounds: applyRoundStatusOverrides(c.rounds || []),
       entries: deduplicateContestEntries(c.entries || []).map((e) => {
         if (e.roundScores) return e;
         const fallbackDefault = DEFAULT_CONTESTS[0].entries.find(
@@ -172,7 +239,10 @@ function loadContests() {
       }),
     }));
   } catch {
-    return DEFAULT_CONTESTS;
+    return DEFAULT_CONTESTS.map((c) => ({
+      ...c,
+      rounds: applyRoundStatusOverrides(c.rounds || []),
+    }));
   }
 }
 
@@ -189,11 +259,33 @@ export function useContests() {
   const [contests, setContests] = useState(() => loadContests());
 
   useEffect(() => {
-    // If Supabase is configured, fetch active contest from PostgreSQL
-    if (isSupabaseConfigured()) {
+    let unsubscribe = () => {};
+
+    const syncFromRemote = () => {
+      if (!isSupabaseConfigured()) return;
+
       contestService.getActiveContest().then((dbContest) => {
         if (dbContest && dbContest.rounds && dbContest.rounds.length > 0) {
           const current = loadContests();
+
+          // Sync remote statuses into overrides
+          dbContest.rounds.forEach((r) => {
+            if (r.status) {
+              const rId = String(r.id || "").toLowerCase();
+              const num = String(r.round_number || "").replace(/\D/g, "");
+              const currentOverrides = getRoundStatusOverrides();
+              currentOverrides[rId] = r.status;
+              if (num) {
+                currentOverrides[`round-${num}`] = r.status;
+                currentOverrides[`r${num}`] = r.status;
+                currentOverrides[num] = r.status;
+              }
+              try {
+                localStorage.setItem(ROUND_STATUS_OVERRIDES_KEY, JSON.stringify(currentOverrides));
+              } catch {}
+            }
+          });
+
           const mappedRounds = dbContest.rounds.map((r) => ({
             id: r.id,
             roundNumber: r.round_number,
@@ -201,34 +293,53 @@ export function useContests() {
             hashtag: r.hashtag,
             deadline: r.deadline,
             status: r.status,
+            description: r.description || "",
           }));
 
+          const mergedRounds = applyRoundStatusOverrides(mappedRounds);
+
           const updated = current.map((c) => {
-            if (c.id === 1 || c.id === "1" || c.showBanner) {
+            if (isContestMatch(c, dbContest.id) || c.showBanner) {
+              const currentActive = mergedRounds.find((r) => r.status === "Active") || mergedRounds[0];
               return {
                 ...c,
+                id: dbContest.id || c.id,
                 title: dbContest.title || c.title,
                 subtitle: dbContest.subtitle || c.subtitle,
                 bannerCaption: dbContest.banner_caption || c.bannerCaption,
                 prizePool: dbContest.prize_pool || c.prizePool,
-                officialHashtag: dbContest.official_hashtag || c.officialHashtag,
-                rounds: mappedRounds,
+                officialHashtag: currentActive?.hashtag || dbContest.official_hashtag || c.officialHashtag,
+                activeRoundId: currentActive?.id || c.activeRoundId,
+                rounds: mergedRounds,
               };
             }
             return c;
           });
+
           setContests(updated);
           saveContests(updated);
         }
-      }).catch(() => {});
+      }).catch((e) => console.warn("[LOV Contests] sync notice:", e));
+    };
+
+    // Initial fetch from cloud
+    syncFromRemote();
+
+    // Subscribe to live websocket updates across all devices
+    if (isSupabaseConfigured()) {
+      unsubscribe = contestService.subscribeToContest("all", () => {
+        syncFromRemote();
+      });
     }
 
-    const sync = () => setContests(loadContests());
-    window.addEventListener(SYNC_EVENT, sync);
-    window.addEventListener("storage", sync);
+    const syncLocal = () => setContests(loadContests());
+    window.addEventListener(SYNC_EVENT, syncLocal);
+    window.addEventListener("storage", syncLocal);
+
     return () => {
-      window.removeEventListener(SYNC_EVENT, sync);
-      window.removeEventListener("storage", sync);
+      unsubscribe();
+      window.removeEventListener(SYNC_EVENT, syncLocal);
+      window.removeEventListener("storage", syncLocal);
     };
   }, []);
 
@@ -237,7 +348,7 @@ export function useContests() {
     contests.find((c) => c.showBanner) || contests[0] || DEFAULT_CONTESTS[0];
 
   const activeRound =
-    activeContest?.rounds?.find((r) => r.id === activeContest.activeRoundId) ||
+    activeContest?.rounds?.find((r) => isRoundMatch(r, activeContest.activeRoundId)) ||
     activeContest?.rounds?.find((r) => r.status === "Active") ||
     activeContest?.rounds?.[0];
 
@@ -303,7 +414,7 @@ export function useContests() {
   const updateContestBanner = useCallback((contestId, updates) => {
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) {
+      if (!isContestMatch(contest, contestId)) {
         return updates.showBanner ? { ...contest, showBanner: false } : contest;
       }
       return {
@@ -319,7 +430,7 @@ export function useContests() {
   const addRound = useCallback((contestId, roundData) => {
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       const nextRoundNum = (contest.rounds?.length || 0) + 1;
       const rawTag =
         roundData.hashtag?.trim() || `#lov_contest_round${nextRoundNum}`;
@@ -359,20 +470,23 @@ export function useContests() {
 
   // Start a round (marks Active, advances active round, updates official hashtag)
   const startRound = useCallback((contestId, roundId) => {
+    saveRoundStatusOverride(roundId, "Active");
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       let nextHashtag = contest.officialHashtag;
+      let nextActiveId = contest.activeRoundId;
       const updatedRounds = (contest.rounds || []).map((r) => {
-        if (r.id === roundId) {
+        if (isRoundMatch(r, roundId)) {
           nextHashtag = r.hashtag;
+          nextActiveId = r.id;
           return { ...r, status: "Active" };
         }
         return r;
       });
       return {
         ...contest,
-        activeRoundId: roundId,
+        activeRoundId: nextActiveId,
         officialHashtag: nextHashtag,
         rounds: updatedRounds,
       };
@@ -384,18 +498,19 @@ export function useContests() {
 
   // Stop / End a round (marks Completed / Stopped, closing submissions)
   const stopRound = useCallback((contestId, roundId) => {
+    saveRoundStatusOverride(roundId, "Completed");
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       const updatedRounds = (contest.rounds || []).map((r) => {
-        if (r.id === roundId) {
+        if (isRoundMatch(r, roundId)) {
           return { ...r, status: "Completed" };
         }
         return r;
       });
       let nextActiveId = contest.activeRoundId;
       let nextHashtag = contest.officialHashtag;
-      if (contest.activeRoundId === roundId) {
+      if (isRoundMatch({ id: contest.activeRoundId }, roundId)) {
         const otherActive = updatedRounds.find((r) => r.status === "Active");
         if (otherActive) {
           nextActiveId = otherActive.id;
@@ -422,11 +537,12 @@ export function useContests() {
       } else if (newStatus === "Completed" || newStatus === "Stopped") {
         stopRound(contestId, roundId);
       } else {
+        saveRoundStatusOverride(roundId, newStatus);
         const current = loadContests();
         const updated = current.map((contest) => {
-          if (Number(contest.id) !== Number(contestId)) return contest;
+          if (!isContestMatch(contest, contestId)) return contest;
           const updatedRounds = (contest.rounds || []).map((r) =>
-            r.id === roundId ? { ...r, status: newStatus } : r
+            isRoundMatch(r, roundId) ? { ...r, status: newStatus } : r
           );
           return {
             ...contest,
@@ -443,41 +559,45 @@ export function useContests() {
 
   // Switch active round
   const setActiveRound = useCallback((contestId, roundId) => {
+    saveRoundStatusOverride(roundId, "Active");
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       let nextHashtag = contest.officialHashtag;
+      let nextActiveId = contest.activeRoundId;
       const updatedRounds = (contest.rounds || []).map((r) => {
-        if (r.id === roundId) {
+        if (isRoundMatch(r, roundId)) {
           nextHashtag = r.hashtag;
+          nextActiveId = r.id;
           return { ...r, status: "Active" };
         }
         return r;
       });
       return {
         ...contest,
-        activeRoundId: roundId,
+        activeRoundId: nextActiveId,
         officialHashtag: nextHashtag,
         rounds: updatedRounds,
       };
     });
     saveContests(updated);
     setContests(updated);
+    contestService.updateRoundStatus(roundId, "Active");
   }, []);
 
   // Delete a round
   const deleteRound = useCallback((contestId, roundId) => {
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       if ((contest.rounds || []).length <= 1) return contest;
-      const remaining = contest.rounds.filter((r) => r.id !== roundId);
+      const remaining = contest.rounds.filter((r) => !isRoundMatch(r, roundId));
       const nextActive =
         remaining.find((r) => r.status === "Active") || remaining[0];
       return {
         ...contest,
-        activeRoundId: nextActive.id,
-        officialHashtag: nextActive.hashtag,
+        activeRoundId: nextActive?.id || "round-1",
+        officialHashtag: nextActive?.hashtag || contest.officialHashtag,
         rounds: remaining,
       };
     });
@@ -491,11 +611,12 @@ export function useContests() {
     let createdEntry = null;
 
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
 
       const targetRound =
-        contest.rounds?.find((r) => r.id === entryData.roundId) ||
-        contest.rounds?.find((r) => r.id === contest.activeRoundId) ||
+        contest.rounds?.find((r) => isRoundMatch(r, entryData.roundId)) ||
+        contest.rounds?.find((r) => isRoundMatch(r, contest.activeRoundId)) ||
+        contest.rounds?.find((r) => r.status === "Active") ||
         contest.rounds?.[0];
 
       if (!targetRound) {
@@ -544,7 +665,7 @@ export function useContests() {
       const cleanLovId = (entryData.lovId || "").trim().toLowerCase();
 
       const alreadySubmitted = (contest.entries || []).some((e) => {
-        if (e.roundId !== cleanRoundId) return false;
+        if (!isRoundMatch({ id: e.roundId, roundNumber: e.roundNumber }, cleanRoundId)) return false;
         if (cleanLovId && (e.lovId || "").toLowerCase() === cleanLovId) return true;
         if (cleanEmail && (e.email || "").toLowerCase() === cleanEmail) return true;
         return (e.participantName || "").trim().toLowerCase() === cleanName;
@@ -580,7 +701,7 @@ export function useContests() {
         roundNumber: targetRound?.roundNumber || 1,
         contestantCode,
         participantName: entryData.participantName.trim(),
-        participantType: entryData.participantType || "Outsider", // "LOV Member" | "Outsider"
+        participantType: entryData.participantType || "Outsider",
         lovId:
           entryData.participantType === "LOV Member"
             ? entryData.lovId || "LOV-2026-MEM"
@@ -614,6 +735,18 @@ export function useContests() {
         roundScores: {},
       };
 
+      // Also register to Supabase in the background
+      contestService.registerEntry({
+        contestId: contest.id,
+        competitorName: createdEntry.participantName,
+        isMember: createdEntry.participantType === "LOV Member",
+        lovId: createdEntry.lovId,
+        email: createdEntry.email,
+        role: createdEntry.roleCategory,
+        note: `${createdEntry.characterAndAnime} (${targetRound.title})`,
+        images: uploadedImages,
+      }).catch((err) => console.warn("Supabase entry sync notice:", err));
+
       return {
         ...contest,
         entries: [createdEntry, ...(contest.entries || [])],
@@ -629,11 +762,11 @@ export function useContests() {
   const voteEntry = useCallback((contestId, entryId) => {
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       return {
         ...contest,
         entries: (contest.entries || []).map((entry) => {
-          if (Number(entry.id) !== Number(entryId)) return entry;
+          if (String(entry.id) !== String(entryId)) return entry;
           const nextLiked = !entry.likedByMe;
           return {
             ...entry,
@@ -651,11 +784,11 @@ export function useContests() {
   const updateEntryStatus = useCallback((contestId, entryId, nextStatus) => {
     const current = loadContests();
     const updated = current.map((contest) => {
-      if (Number(contest.id) !== Number(contestId)) return contest;
+      if (!isContestMatch(contest, contestId)) return contest;
       return {
         ...contest,
         entries: (contest.entries || []).map((entry) =>
-          Number(entry.id) === Number(entryId)
+          String(entry.id) === String(entryId)
             ? { ...entry, status: nextStatus }
             : entry
         ),
@@ -670,11 +803,11 @@ export function useContests() {
     (contestId, entryId, roundId, scoreData) => {
       const current = loadContests();
       const updated = current.map((contest) => {
-        if (Number(contest.id) !== Number(contestId)) return contest;
+        if (!isContestMatch(contest, contestId)) return contest;
         return {
           ...contest,
           entries: (contest.entries || []).map((entry) => {
-            if (Number(entry.id) !== Number(entryId)) return entry;
+            if (String(entry.id) !== String(entryId)) return entry;
             const prevRoundScores = entry.roundScores || {};
             const vocal = Number(scoreData.vocal) || 0;
             const sync = Number(scoreData.sync) || 0;
@@ -713,11 +846,11 @@ export function useContests() {
     (contestId, entryId, roundId, delta) => {
       const current = loadContests();
       const updated = current.map((contest) => {
-        if (Number(contest.id) !== Number(contestId)) return contest;
+        if (!isContestMatch(contest, contestId)) return contest;
         return {
           ...contest,
           entries: (contest.entries || []).map((entry) => {
-            if (Number(entry.id) !== Number(entryId)) return entry;
+            if (String(entry.id) !== String(entryId)) return entry;
             const prevRoundScores = entry.roundScores || {};
             const existing = prevRoundScores[roundId] || {
               vocal: 30,

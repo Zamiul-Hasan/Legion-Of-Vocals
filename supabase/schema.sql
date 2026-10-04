@@ -260,11 +260,17 @@ CREATE POLICY "Contests are viewable by everyone"
 CREATE POLICY "Contest rounds are viewable by everyone" 
     ON public.contest_rounds FOR SELECT USING (true);
 
+CREATE POLICY "Contest rounds can be updated" 
+    ON public.contest_rounds FOR ALL USING (true);
+
 CREATE POLICY "Contest entries are viewable by everyone" 
     ON public.contest_entries FOR SELECT USING (true);
 
 CREATE POLICY "Anyone can register for a contest" 
     ON public.contest_entries FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Contest entries can be updated or deleted" 
+    ON public.contest_entries FOR ALL USING (true);
 
 CREATE POLICY "Round scores are viewable by everyone" 
     ON public.contest_round_scores FOR SELECT USING (true);
