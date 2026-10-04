@@ -337,12 +337,17 @@ export function loadMembers() {
 
           // If Founder, preserve legit info strictly:
           if (isFounder) {
-            const validAvatar = found.avatar && !found.avatar.includes("logo.png") && !found.avatar.includes("logo.jpg")
-              ? found.avatar
-              : def.avatar;
-            const validCover = found.cover && !found.cover.includes("blue-lock-banner.jpg")
-              ? found.cover
-              : def.cover;
+            const validAvatar =
+              typeof found.avatar === "string" &&
+              !found.avatar.includes("logo.png") &&
+              !found.avatar.includes("logo.jpg")
+                ? found.avatar
+                : def.avatar;
+            const validCover =
+              typeof found.cover === "string" &&
+              !found.cover.includes("blue-lock-banner.jpg")
+                ? found.cover
+                : def.cover;
             return {
               ...def,
               avatar: validAvatar,
@@ -434,8 +439,15 @@ export function useMembers() {
               }
             }
 
-            if (!avatar || avatar.includes("logo.png") || avatar.includes("logo.jpg")) {
-              if (localMatch?.avatar && !localMatch.avatar.includes("logo.png") && !localMatch.avatar.includes("logo.jpg")) {
+            if (
+              !avatar ||
+              (typeof avatar === "string" && (avatar.includes("logo.png") || avatar.includes("logo.jpg")))
+            ) {
+              if (
+                typeof localMatch?.avatar === "string" &&
+                !localMatch.avatar.includes("logo.png") &&
+                !localMatch.avatar.includes("logo.jpg")
+              ) {
                 avatar = localMatch.avatar;
               } else if (String(dbM.id) === "1" || dbM.lovId === "LOV-2026-0001" || dbM.username === "ovi") {
                 avatar = defaultMembers[0].avatar;

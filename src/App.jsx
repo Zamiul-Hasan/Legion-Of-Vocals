@@ -8,23 +8,28 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <ErrorBoundary>
-      <AppRoutes />
+    <>
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
+
       {/* Floating Messenger only appears for authenticated members */}
       {isAuthenticated && (
         <ErrorBoundary fallback={null}>
           <FloatingMessenger />
         </ErrorBoundary>
       )}
-    </ErrorBoundary>
+    </>
   );
 }
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

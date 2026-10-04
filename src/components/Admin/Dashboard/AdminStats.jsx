@@ -11,29 +11,33 @@ import { useProjects } from "../../../hooks/useProjects";
 import { useDubVideos } from "../../../hooks/useDubVideos";
 
 function AdminStats() {
-  const { members } = useMembers();
-  const { projects } = useProjects();
-  const { videos } = useDubVideos();
+  const { members = [] } = useMembers();
+  const { projects = [] } = useProjects();
+  const { videos = [] } = useDubVideos();
 
-  const totalPoints = members.reduce(
-    (acc, m) => acc + (Number(m.points) || 0),
+  const safeMembers = Array.isArray(members) ? members : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeVideos = Array.isArray(videos) ? videos : [];
+
+  const totalPoints = safeMembers.reduce(
+    (acc, m) => acc + (Number(m?.points) || 0),
     0
   );
 
   const stats = [
     {
       title: "Members",
-      value: members.length,
+      value: safeMembers.length,
       icon: Users,
     },
     {
       title: "Projects",
-      value: projects.length,
+      value: safeProjects.length,
       icon: FolderKanban,
     },
     {
       title: "Dub Videos",
-      value: videos.length,
+      value: safeVideos.length,
       icon: Mic2,
     },
     {

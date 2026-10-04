@@ -3,9 +3,20 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+const getAuthDomain = () => {
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname &&
+    window.location.hostname.includes("vercel.app")
+  ) {
+    return window.location.hostname;
+  }
+  return import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "lov-portal-1300f.firebaseapp.com";
+};
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBizLB1pHdsnYUKCzLeEtW_GOCGfpzTKnI",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "lov-portal-1300f.firebaseapp.com",
+  authDomain: getAuthDomain(),
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "lov-portal-1300f",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "lov-portal-1300f.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "991992807622",

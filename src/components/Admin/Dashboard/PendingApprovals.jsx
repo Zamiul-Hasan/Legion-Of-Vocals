@@ -38,7 +38,9 @@ function PendingApprovals() {
   const [pendingUsers, setPendingUsers] = useState(() => loadCleanPendingUsers());
 
   const { videos } = useDubVideos();
-  const pendingVideos = videos.filter((v) => v.status === "Pending Review");
+  const safeVideos = Array.isArray(videos) ? videos : [];
+  const pendingVideos = safeVideos.filter((v) => v && v.status === "Pending Review");
+  const safePendingUsers = Array.isArray(pendingUsers) ? pendingUsers : [];
 
   useEffect(() => {
     let isMounted = true;
@@ -102,7 +104,7 @@ function PendingApprovals() {
     };
   }, []);
 
-  const totalPending = pendingUsers.length + pendingVideos.length;
+  const totalPending = safePendingUsers.length + pendingVideos.length;
 
   return (
     <div className="bg-slate-900 border border-cyan-500/20 rounded-3xl p-6 flex flex-col justify-between">

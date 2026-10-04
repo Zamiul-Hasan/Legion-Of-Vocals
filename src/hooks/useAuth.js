@@ -161,6 +161,9 @@ export function useAuth() {
 
         setUser(loggedInUser);
         saveCurrentUser(loggedInUser);
+        if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "/join")) {
+          window.location.replace(isFounderEmail ? "/admin" : "/dashboard");
+        }
       }
     }).catch(() => {});
 

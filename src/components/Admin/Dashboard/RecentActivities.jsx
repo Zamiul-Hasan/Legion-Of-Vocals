@@ -2,7 +2,8 @@ import { useNotifications } from "../../../data/notifications";
 import { Activity } from "lucide-react";
 
 function RecentActivities() {
-  const { notifications } = useNotifications();
+  const { notifications = [] } = useNotifications();
+  const safeNotifs = Array.isArray(notifications) ? notifications : [];
 
   return (
     <div className="bg-slate-900 border border-cyan-500/20 rounded-3xl p-6">
@@ -13,7 +14,7 @@ function RecentActivities() {
         </h2>
       </div>
 
-      {notifications.length === 0 ? (
+      {safeNotifs.length === 0 ? (
         <div className="py-10 text-center text-gray-400">
           <p className="font-semibold text-white">No Activities Yet</p>
           <p className="text-xs text-gray-500 mt-1">
@@ -22,7 +23,7 @@ function RecentActivities() {
         </div>
       ) : (
         <div className="space-y-3.5">
-          {notifications.slice(0, 4).map((item) => (
+          {safeNotifs.slice(0, 4).map((item) => (
             <div
               key={item.id}
               className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/50 flex flex-col gap-1 hover:border-cyan-500/30 transition"
